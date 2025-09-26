@@ -52,7 +52,7 @@ export default function ImprovementsTab({
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div>
           <h3 className="font-semibold mb-2 text-muted-foreground">
             Original Resume
@@ -78,12 +78,12 @@ export default function ImprovementsTab({
             Download your enhanced resume in your preferred format.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-4">
-          <Button onClick={() => onExport('docx')}>
+        <CardContent className="flex flex-col sm:flex-row gap-4">
+          <Button onClick={() => onExport('docx')} className="w-full sm:w-auto">
             <FileText className="mr-2 h-4 w-4" />
             Export as DOCX
           </Button>
-          <Button onClick={() => onExport('pdf')} variant="secondary">
+          <Button onClick={() => onExport('pdf')} variant="secondary" className="w-full sm:w-auto">
             <Download className="mr-2 h-4 w-4" />
             Export as PDF
           </Button>
