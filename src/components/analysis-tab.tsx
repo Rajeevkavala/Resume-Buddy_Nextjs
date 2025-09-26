@@ -1,13 +1,41 @@
-import type { AnalyzeResumeContentOutput } from '@/ai/flows/analyze-resume-content';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import type {AnalyzeResumeContentOutput} from '@/ai/flows/analyze-resume-content';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
+import {Badge} from '@/components/ui/badge';
+import {Progress} from '@/components/ui/progress';
+import {Button} from './ui/button';
+import {Loader2} from 'lucide-react';
 
 interface AnalysisTabProps {
-  analysis: AnalyzeResumeContentOutput;
+  analysis: AnalyzeResumeContentOutput | null;
+  onGenerate: () => void;
+  isLoading: boolean;
 }
 
-export default function AnalysisTab({ analysis }: AnalysisTabProps) {
+export default function AnalysisTab({
+  analysis,
+  onGenerate,
+  isLoading,
+}: AnalysisTabProps) {
+  if (!analysis) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg min-h-[400px]">
+        <p className="text-muted-foreground mb-4">
+          Generate an analysis of your resume against the job description.
+        </p>
+        <Button onClick={onGenerate} disabled={isLoading}>
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Generate Analysis
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -23,7 +51,9 @@ export default function AnalysisTab({ analysis }: AnalysisTabProps) {
         <Card>
           <CardHeader>
             <CardTitle>ATS Score</CardTitle>
-            <CardDescription>How well your resume is optimized for applicant tracking systems.</CardDescription>
+            <CardDescription>
+              How well your resume is optimized for applicant tracking systems.
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center space-y-2 pt-4">
             <div className="relative h-32 w-32">
@@ -44,7 +74,9 @@ export default function AnalysisTab({ analysis }: AnalysisTabProps) {
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-3xl font-bold font-headline">{analysis.atsScore}</span>
+                <span className="text-3xl font-bold font-headline">
+                  {analysis.atsScore}
+                </span>
               </div>
             </div>
             <p className="text-sm text-muted-foreground">out of 100</p>
@@ -54,12 +86,21 @@ export default function AnalysisTab({ analysis }: AnalysisTabProps) {
         <Card>
           <CardHeader>
             <CardTitle>Content Coverage</CardTitle>
-            <CardDescription>How much of the job description is covered in your resume.</CardDescription>
+            <CardDescription>
+              How much of the job description is covered in your resume.
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center space-y-4 pt-4">
-             <p className="text-3xl font-bold font-headline">{analysis.contentCoveragePercentage}%</p>
-             <Progress value={analysis.contentCoveragePercentage} className="w-full" />
-             <p className="text-sm text-muted-foreground text-center">of job description keywords found.</p>
+            <p className="text-3xl font-bold font-headline">
+              {analysis.contentCoveragePercentage}%
+            </p>
+            <Progress
+              value={analysis.contentCoveragePercentage}
+              className="w-full"
+            />
+            <p className="text-sm text-muted-foreground text-center">
+              of job description keywords found.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -67,17 +108,23 @@ export default function AnalysisTab({ analysis }: AnalysisTabProps) {
       <Card>
         <CardHeader>
           <CardTitle>Skill Gaps</CardTitle>
-          <CardDescription>Skills from the job description missing in your resume.</CardDescription>
+          <CardDescription>
+            Skills from the job description missing in your resume.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {analysis.skillGaps.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {analysis.skillGaps.map((skill, index) => (
-                <Badge key={index} variant="secondary">{skill}</Badge>
+                <Badge key={index} variant="secondary">
+                  {skill}
+                </Badge>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No skill gaps found. Great job!</p>
+            <p className="text-sm text-muted-foreground">
+              No skill gaps found. Great job!
+            </p>
           )}
         </CardContent>
       </Card>
