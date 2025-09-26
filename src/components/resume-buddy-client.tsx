@@ -43,6 +43,9 @@ export function ResumeBuddyClient() {
 
 
   useEffect(() => {
+    if (!state) {
+      return;
+    }
     if (state.error) {
       toast({
         variant: 'destructive',
