@@ -1,6 +1,7 @@
+
 import type { Metadata } from 'next';
 import { ThemeProvider } from '@/components/theme-provider';
-import { Toaster } from '@/components/ui/toaster';
+import { Toaster } from '@/components/ui/sonner';
 import './globals.css';
 import { ResumeProvider } from '@/context/resume-context';
 import Navbar from '@/components/navbar';
@@ -34,7 +35,7 @@ export default function RootLayout({
               <Navbar />
               {children}
             </div>
-            <Toaster />
+            <Toaster richColors />
           </ResumeProvider>
         </ThemeProvider>
       </body>

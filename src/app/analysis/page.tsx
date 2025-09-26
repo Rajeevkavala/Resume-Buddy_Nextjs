@@ -4,44 +4,40 @@
 import { useState, useContext } from 'react';
 import { runAnalysisAction } from '@/app/actions';
 import { ResumeContext } from '@/context/resume-context';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { AnalyzeResumeContentOutput } from '@/ai/flows/analyze-resume-content';
 import AnalysisTab from '@/components/analysis-tab';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function AnalysisPage() {
-  const { toast } = useToast();
   const { resumeText, jobDescription } = useContext(ResumeContext);
   const [analysis, setAnalysis] = useState<AnalyzeResumeContentOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGeneration = async () => {
     if (!resumeText || !jobDescription) {
-      toast({
-        variant: 'destructive',
-        title: 'Missing Content',
+      toast.error('Missing Content', {
         description: 'Please provide both a resume and a job description on the dashboard.',
       });
       return;
     }
 
     setIsLoading(true);
-    try {
-      const result = await runAnalysisAction({ resumeText, jobDescription });
-      setAnalysis(result);
-      toast({
-        title: 'Analysis Complete',
-        description: 'The analysis has been generated successfully.',
-      });
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Generation Failed',
-        description: error.message || 'An unexpected error occurred.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    const promise = runAnalysisAction({ resumeText, jobDescription });
+
+    toast.promise(promise, {
+      loading: 'Analyzing your resume...',
+      success: (result) => {
+        setAnalysis(result);
+        return 'Analysis Complete!';
+      },
+      error: (error) => {
+        return error.message || 'An unexpected error occurred.';
+      },
+      finally: () => {
+        setIsLoading(false);
+      }
+    });
   };
 
   return (

@@ -8,56 +8,47 @@ import {
   exportPdf,
 } from '@/app/actions';
 import { ResumeContext } from '@/context/resume-context';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { SuggestResumeImprovementsOutput } from '@/ai/flows/suggest-resume-improvements';
 import ImprovementsTab from '@/components/improvements-tab';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { saveAs } from 'file-saver';
 
 export default function ImprovementPage() {
-  const { toast } = useToast();
   const { resumeText, jobDescription } = useContext(ResumeContext);
   const [improvements, setImprovements] = useState<SuggestResumeImprovementsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGeneration = async () => {
     if (!resumeText || !jobDescription) {
-      toast({
-        variant: 'destructive',
-        title: 'Missing Content',
+      toast.error('Missing Content', {
         description: 'Please provide both a resume and a job description on the dashboard.',
       });
       return;
     }
     
     setIsLoading(true);
-    try {
-      const result = await runImprovementsGenerationAction({ resumeText, jobDescription });
-      setImprovements(result);
-      toast({
-        title: 'Improvements Complete',
-        description: 'The suggestions have been generated successfully.',
-      });
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Generation Failed',
-        description: error.message || 'An unexpected error occurred.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    const promise = runImprovementsGenerationAction({ resumeText, jobDescription });
+
+    toast.promise(promise, {
+      loading: 'Generating improvements...',
+      success: (result) => {
+        setImprovements(result);
+        return 'Improvements generated successfully!';
+      },
+      error: (error) => {
+        return error.message || 'An unexpected error occurred.';
+      },
+      finally: () => {
+        setIsLoading(false);
+      }
+    });
   };
 
   const handleExport = async (format: 'docx' | 'pdf') => {
     if (!improvements?.improvedResumeText) return;
 
-    const exportToast = toast({
-      title: 'Exporting...',
-      description: `Your resume is being exported as a ${format.toUpperCase()} file.`,
-    });
-
-    try {
+    const exportPromise = (async () => {
       const exportFn = format === 'docx' ? exportDocx : exportPdf;
       const base64Data = await exportFn(
         improvements.improvedResumeText
@@ -75,20 +66,13 @@ export default function ImprovementPage() {
             : 'application/pdf',
       });
       saveAs(blob, `improved-resume.${format}`);
-      exportToast.update({
-        id: exportToast.id,
-        title: 'Export Successful',
-        description: `Your resume has been downloaded.`,
-      });
-    } catch (error) {
-      console.error(`Export to ${format} failed`, error);
-      exportToast.update({
-        id: exportToast.id,
-        variant: 'destructive',
-        title: 'Export Failed',
-        description: `Could not export resume as ${format.toUpperCase()}.`,
-      });
-    }
+    })();
+
+    toast.promise(exportPromise, {
+      loading: `Exporting as ${format.toUpperCase()}...`,
+      success: `Resume exported successfully!`,
+      error: `Could not export resume as ${format.toUpperCase()}.`,
+    });
   };
 
 
