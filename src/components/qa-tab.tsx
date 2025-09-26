@@ -1,6 +1,6 @@
 import type { GenerateResumeQAOutput } from '@/ai/flows/generate-resume-qa';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Card, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 
 interface QATabProps {
   qa: GenerateResumeQAOutput;
