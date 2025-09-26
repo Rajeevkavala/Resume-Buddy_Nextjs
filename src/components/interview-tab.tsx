@@ -1,6 +1,6 @@
 import type { GenerateInterviewQuestionsOutput } from '@/ai/flows/generate-interview-questions';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Card, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 
 interface InterviewTabProps {
   interview: GenerateInterviewQuestionsOutput;
