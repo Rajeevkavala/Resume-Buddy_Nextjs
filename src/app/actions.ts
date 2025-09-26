@@ -9,7 +9,7 @@ import {suggestResumeImprovements} from '@/ai/flows/suggest-resume-improvements'
 import {Packer, Document, Paragraph, TextRun} from 'docx';
 import PDFDocument from 'pdfkit';
 import mammoth from 'mammoth';
-import pdf from 'pdf-parse';
+import pdf from 'pdf-parse-fork';
 
 const baseSchema = z.object({
   resumeText: z
