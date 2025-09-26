@@ -31,7 +31,7 @@ export default function Navbar() {
         <div className="flex gap-6 md:gap-10">
           <Link href="/" className="flex items-center space-x-2">
             <Icons.logo />
-            <span className="inline-block font-bold font-headline text-lg">ResumeWise</span>
+            <span className="inline-block font-bold font-headline text-lg">ResumeBuddy</span>
           </Link>
           <nav className="hidden md:flex gap-6">
             {navItems.map(item => (
@@ -66,7 +66,7 @@ export default function Navbar() {
             <SheetContent side="left">
               <Link href="/" className="flex items-center space-x-2 mb-6">
                 <Icons.logo />
-                <span className="inline-block font-bold font-headline text-lg">ResumeWise</span>
+                <span className="inline-block font-bold font-headline text-lg">ResumeBuddy</span>
               </Link>
               <nav className="flex flex-col gap-4">
                 {navItems.map(item => (
