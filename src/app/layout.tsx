@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
+import { ResumeProvider } from '@/context/resume-context';
+import Navbar from '@/components/navbar';
 
 export const metadata: Metadata = {
   title: 'ResumeWise',
@@ -27,8 +29,13 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster />
+          <ResumeProvider>
+            <div className="flex min-h-screen w-full flex-col bg-muted/40">
+              <Navbar />
+              {children}
+            </div>
+            <Toaster />
+          </ResumeProvider>
         </ThemeProvider>
       </body>
     </html>
