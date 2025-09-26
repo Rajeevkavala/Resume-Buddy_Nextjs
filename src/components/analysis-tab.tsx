@@ -9,7 +9,8 @@ import {
 import {Badge} from '@/components/ui/badge';
 import {Progress} from '@/components/ui/progress';
 import {Button} from './ui/button';
-import {Loader2} from 'lucide-react';
+import {Loader2, CheckCircle, XCircle} from 'lucide-react';
+import { Separator } from './ui/separator';
 
 interface AnalysisTabProps {
   analysis: AnalyzeResumeContentOutput | null;
@@ -26,7 +27,7 @@ export default function AnalysisTab({
     return (
       <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg min-h-[400px]">
         <p className="text-muted-foreground mb-4">
-          Generate an analysis of your resume against the job description.
+          Generate an in-depth analysis of your resume against the job description.
         </p>
         <Button onClick={onGenerate} disabled={isLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -107,25 +108,64 @@ export default function AnalysisTab({
 
       <Card>
         <CardHeader>
-          <CardTitle>Skill Gaps</CardTitle>
+          <CardTitle>Detailed Feedback</CardTitle>
           <CardDescription>
-            Skills from the job description missing in your resume.
+            Specific suggestions to improve your resume's content.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          {analysis.skillGaps.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {analysis.skillGaps.map((skill, index) => (
-                <Badge key={index} variant="secondary">
-                  {skill}
-                </Badge>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              No skill gaps found. Great job!
-            </p>
-          )}
+        <CardContent className="space-y-4">
+          <div>
+            <h4 className="font-semibold mb-2">Action Verb Feedback</h4>
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.actionVerbFeedback}</p>
+          </div>
+          <Separator />
+          <div>
+            <h4 className="font-semibold mb-2">Quantifiable Results Feedback</h4>
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.quantifiableResultsFeedback}</p>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Keyword and Skill Analysis</CardTitle>
+          <CardDescription>
+            Keywords and skills from the job description compared to your resume.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h4 className="font-semibold mb-3 flex items-center"><CheckCircle className="mr-2 h-5 w-5 text-green-500" /> Present Keywords</h4>
+            {analysis.keywordAnalysis.presentKeywords.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {analysis.keywordAnalysis.presentKeywords.map((skill, index) => (
+                  <Badge key={index} variant="secondary">
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No matching keywords found.
+              </p>
+            )}
+          </div>
+          <div>
+            <h4 className="font-semibold mb-3 flex items-center"><XCircle className="mr-2 h-5 w-5 text-red-500" /> Missing Keywords & Skills</h4>
+            {analysis.skillGaps.length > 0 || analysis.keywordAnalysis.missingKeywords.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {[...new Set([...analysis.skillGaps, ...analysis.keywordAnalysis.missingKeywords])].map((skill, index) => (
+                  <Badge key={index} variant="destructive">
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No skill gaps found. Great job!
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

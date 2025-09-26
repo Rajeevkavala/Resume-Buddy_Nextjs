@@ -41,6 +41,18 @@ const AnalyzeResumeContentOutputSchema = z.object({
   summary: z
     .string()
     .describe('A summary of how well the resume matches the job description.'),
+  keywordAnalysis: z
+    .object({
+      presentKeywords: z.array(z.string()).describe('Keywords from the job description found in the resume.'),
+      missingKeywords: z.array(z.string()).describe('Keywords from the job description missing from the resume.'),
+    })
+    .describe('Analysis of keywords from the job description.'),
+  actionVerbFeedback: z
+    .string()
+    .describe('Feedback on the usage of action verbs in the resume, with suggestions for improvement.'),
+  quantifiableResultsFeedback: z
+    .string()
+    .describe('Feedback on the use of quantifiable results to demonstrate accomplishments, with examples.'),
 });
 export type AnalyzeResumeContentOutput = z.infer<typeof AnalyzeResumeContentOutputSchema>;
 
@@ -60,11 +72,17 @@ Resume Text: {{{resumeText}}}
 
 Job Description: {{{jobDescription}}}
 
-Provide an ATS score (0-100), identify skill gaps (skills from the job description not found in the resume), and determine the content coverage percentage (percentage of the job description covered by the resume). Also, provide a brief summary of how well the resume matches the job description.
+Provide a detailed analysis including:
+1. An ATS score (0-100).
+2. A list of skill gaps (skills from the job description not found in the resume).
+3. The content coverage percentage (percentage of job description keywords covered).
+4. A brief summary of how well the resume matches the job description.
+5. A keyword analysis, listing keywords present and missing from the resume based on the job description.
+6. Feedback on the use of action verbs, suggesting stronger alternatives if needed.
+7. Feedback on the use of quantifiable results, providing examples on how to improve.
 
-Ensure that the ATS score is a number between 0 and 100, the skillGaps field is an array of strings, and the contentCoveragePercentage is a number between 0 and 100.
 
-Output in JSON format.`,
+Ensure that the output is in a valid JSON format that adheres to the provided schema.`,
 });
 
 const analyzeResumeContentFlow = ai.defineFlow(
