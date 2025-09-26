@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/sonner';
 import './globals.css';
 import { ResumeProvider } from '@/context/resume-context';
 import Navbar from '@/components/navbar';
+import { AuthProvider } from '@/context/auth-context';
 
 export const metadata: Metadata = {
   title: 'ResumeBuddy',
@@ -30,13 +31,15 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <ResumeProvider>
-            <div className="flex min-h-screen w-full flex-col bg-muted/40">
-              <Navbar />
-              {children}
-            </div>
-            <Toaster richColors />
-          </ResumeProvider>
+          <AuthProvider>
+            <ResumeProvider>
+              <div className="flex min-h-screen w-full flex-col bg-muted/40">
+                <Navbar />
+                {children}
+              </div>
+              <Toaster richColors />
+            </ResumeProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

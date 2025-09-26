@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useContext, useState } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -17,6 +17,8 @@ import { Button } from '@/components/ui/button';
 import { extractText } from './actions';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const {
@@ -28,6 +30,15 @@ export default function Home() {
     setResumeFile,
   } = useContext(ResumeContext);
   const [isLoading, setIsLoading] = useState(false);
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
 
   const handleProcessResume = async () => {
     if (!resumeFile) {
@@ -59,6 +70,14 @@ export default function Home() {
       },
     });
   };
+  
+  if (loading || !user) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <main className="flex-1 p-4 md:p-8">

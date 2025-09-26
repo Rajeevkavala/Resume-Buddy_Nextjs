@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu } from 'lucide-react';
+import { Menu, LogOut } from 'lucide-react';
 import { Icons } from '@/components/icons';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/auth-context';
 
 const navItems = [
   { href: '/', label: 'Dashboard' },
@@ -24,6 +25,7 @@ const navItems = [
 
 export default function Navbar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
@@ -33,24 +35,41 @@ export default function Navbar() {
             <Icons.logo />
             <span className="inline-block font-bold font-headline text-lg">ResumeBuddy</span>
           </Link>
-          <nav className="hidden md:flex gap-6">
-            {navItems.map(item => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center text-sm font-medium text-muted-foreground',
-                  pathname === item.href && 'text-foreground'
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          {user && (
+            <nav className="hidden md:flex gap-6">
+              {navItems.map(item => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    'flex items-center text-sm font-medium text-muted-foreground',
+                    pathname === item.href && 'text-foreground'
+                  )}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          )}
         </div>
         <div className="flex flex-1 items-center justify-end space-x-4">
-          <div className="hidden md:flex items-center space-x-1">
+          <div className="hidden md:flex items-center space-x-2">
             <ThemeToggle />
+            {user ? (
+              <Button variant="ghost" size="sm" onClick={logout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" asChild>
+                  <Link href="/login">Login</Link>
+                </Button>
+                <Button asChild>
+                  <Link href="/signup">Sign Up</Link>
+                </Button>
+              </>
+            )}
           </div>
           <Sheet>
             <SheetTrigger asChild>
@@ -68,23 +87,40 @@ export default function Navbar() {
                 <Icons.logo />
                 <span className="inline-block font-bold font-headline text-lg">ResumeBuddy</span>
               </Link>
-              <nav className="flex flex-col gap-4">
-                {navItems.map(item => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      'text-lg font-medium',
-                      pathname === item.href
-                        ? 'text-foreground'
-                        : 'text-muted-foreground'
-                    )}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
-              <div className="absolute bottom-4 left-4">
+              {user && (
+                <nav className="flex flex-col gap-4">
+                  {navItems.map(item => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        'text-lg font-medium',
+                        pathname === item.href
+                          ? 'text-foreground'
+                          : 'text-muted-foreground'
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </nav>
+              )}
+              <div className="absolute bottom-4 left-4 flex flex-col gap-2">
+                {user ? (
+                  <Button variant="outline" onClick={logout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </Button>
+                ) : (
+                  <div className='flex gap-2'>
+                    <Button variant="outline" asChild>
+                      <Link href="/login">Login</Link>
+                    </Button>
+                    <Button asChild>
+                      <Link href="/signup">Sign Up</Link>
+                    </Button>
+                  </div>
+                )}
                 <ThemeToggle />
               </div>
             </SheetContent>

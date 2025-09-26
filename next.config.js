@@ -1,3 +1,4 @@
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   /* config options here */
@@ -28,6 +29,32 @@ const nextConfig = {
         pathname: '/**',
       },
     ],
+  },
+  async redirects() {
+    return [
+      {
+        source: '/login',
+        destination: '/',
+        permanent: false,
+        has: [
+          {
+            type: 'cookie',
+            key: 'user', // A placeholder, actual auth state is handled client-side
+          },
+        ],
+      },
+      {
+        source: '/signup',
+        destination: '/',
+        permanent: false,
+        has: [
+          {
+            type: 'cookie',
+            key: 'user',
+          },
+        ],
+      },
+    ]
   },
 };
 
