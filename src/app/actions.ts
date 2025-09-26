@@ -1,3 +1,4 @@
+
 'use server';
 
 import {z} from 'zod';
@@ -7,6 +8,8 @@ import {generateResumeQA} from '@/ai/flows/generate-resume-qa';
 import {suggestResumeImprovements} from '@/ai/flows/suggest-resume-improvements';
 import {Packer, Document, Paragraph, TextRun} from 'docx';
 import PDFDocument from 'pdfkit';
+import mammoth from 'mammoth';
+import pdf from 'pdf-parse';
 
 const baseSchema = z.object({
   resumeText: z
@@ -19,6 +22,41 @@ const baseSchema = z.object({
       'Job description is too short. Please provide a more detailed job description.'
     ),
 });
+
+export async function extractText(
+  formData: FormData
+): Promise<{text?: string; error?: string}> {
+  const file = formData.get('resume') as File | null;
+
+  if (!file) {
+    return {error: 'No file uploaded.'};
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  try {
+    if (file.type === 'application/pdf') {
+      const data = await pdf(buffer);
+      return {text: data.text};
+    } else if (
+      file.type ===
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ) {
+      const result = await mammoth.extractRawText({buffer});
+      return {text: result.value};
+    } else if (file.type === 'text/plain') {
+      return {text: buffer.toString('utf8')};
+    } else {
+      return {
+        error:
+          'Unsupported file type. Please upload a PDF, DOCX, or TXT file.',
+      };
+    }
+  } catch (error) {
+    console.error('Error extracting text:', error);
+    return {error: 'Failed to extract text from the file.'};
+  }
+}
 
 export async function runAnalysisAction(input: {
   resumeText: string;
