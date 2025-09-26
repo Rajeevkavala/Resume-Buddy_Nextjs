@@ -12,7 +12,6 @@ import {
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Label} from '@/components/ui/label';
 import {Textarea} from '@/components/ui/textarea';
-import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import AnalysisTab from '@/components/analysis-tab';
 import QATab from '@/components/qa-tab';
 import InterviewTab from '@/components/interview-tab';
@@ -116,102 +115,122 @@ export function ResumeBuddyClient() {
   };
 
   return (
-    <div className="container py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        <Card className="lg:sticky lg:top-24">
+    <div className="container py-8 space-y-8">
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline text-2xl">Dashboard</CardTitle>
+          <CardDescription>
+            Paste your resume and the target job description below to get started.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="resumeText" className="font-semibold">
+                Your Resume
+              </Label>
+              <Textarea
+                id="resumeText"
+                name="resumeText"
+                placeholder="Paste your full resume text here..."
+                className="min-h-[300px] text-sm"
+                value={resumeText}
+                onChange={e => setResumeText(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="jobDescription" className="font-semibold">
+                Job Description
+              </Label>
+              <Textarea
+                id="jobDescription"
+                name="jobDescription"
+                placeholder="Paste the job description here..."
+                className="min-h-[300px] text-sm"
+                value={jobDescription}
+                onChange={e => setJobDescription(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <Card>
           <CardHeader>
-            <CardTitle className="font-headline text-2xl">Start Here</CardTitle>
+            <CardTitle className="font-headline text-xl">
+              Resume Analysis
+            </CardTitle>
             <CardDescription>
-              Paste your resume and the target job description below.
+              Get an in-depth analysis of your resume against the job description.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="resumeText" className="font-semibold">
-                  Your Resume
-                </Label>
-                <Textarea
-                  id="resumeText"
-                  name="resumeText"
-                  placeholder="Paste your full resume text here..."
-                  className="min-h-[250px] text-sm"
-                  value={resumeText}
-                  onChange={e => setResumeText(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="jobDescription" className="font-semibold">
-                  Job Description
-                </Label>
-                <Textarea
-                  id="jobDescription"
-                  name="jobDescription"
-                  placeholder="Paste the job description here..."
-                  className="min-h-[250px] text-sm"
-                  value={jobDescription}
-                  onChange={e => setJobDescription(e.target.value)}
-                  required
-                />
-              </div>
-            </form>
+            <AnalysisTab
+              analysis={analysisResult.analysis}
+              onGenerate={() => handleGeneration('analysis')}
+              isLoading={!!loading.analysis}
+            />
           </CardContent>
         </Card>
 
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-headline text-2xl">
-                AI-Powered Tools
-              </CardTitle>
-              <CardDescription>
-                Select a tool below and click 'Generate' to get AI-powered
-                insights.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="analysis" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-                  <TabsTrigger value="analysis">Analysis</TabsTrigger>
-                  <TabsTrigger value="qa">Q&A</TabsTrigger>
-                  <TabsTrigger value="interview">Interview</TabsTrigger>
-                  <TabsTrigger value="improvement">Improvement</TabsTrigger>
-                </TabsList>
-                <TabsContent value="analysis" className="mt-4">
-                  <AnalysisTab
-                    analysis={analysisResult.analysis}
-                    onGenerate={() => handleGeneration('analysis')}
-                    isLoading={!!loading.analysis}
-                  />
-                </TabsContent>
-                <TabsContent value="qa" className="mt-4">
-                  <QATab
-                    qa={analysisResult.qa}
-                    onGenerate={() => handleGeneration('qa')}
-                    isLoading={!!loading.qa}
-                  />
-                </TabsContent>
-                <TabsContent value="interview" className="mt-4">
-                  <InterviewTab
-                    interview={analysisResult.interview}
-                    onGenerate={() => handleGeneration('interview')}
-                    isLoading={!!loading.interview}
-                  />
-                </TabsContent>
-                <TabsContent value="improvement" className="mt-4">
-                  <ImprovementsTab
-                    improvements={analysisResult.improvements}
-                    originalResume={resumeText}
-                    onExport={handleExport}
-                    onGenerate={() => handleGeneration('improvement')}
-                    isLoading={!!loading.improvement}
-                  />
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-headline text-xl">
+              Resume Q&amp;A
+            </CardTitle>
+            <CardDescription>
+              Generate potential questions and answers based on your resume.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <QATab
+              qa={analysisResult.qa}
+              onGenerate={() => handleGeneration('qa')}
+              isLoading={!!loading.qa}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-headline text-xl">
+              Interview Prep
+            </CardTitle>
+            <CardDescription>
+              Practice with AI-generated questions tailored to the role.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <InterviewTab
+              interview={analysisResult.interview}
+              onGenerate={() => handleGeneration('interview')}
+              isLoading={!!loading.interview}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-headline text-xl">
+              Resume Improvement
+            </CardTitle>
+            <CardDescription>
+              Get AI-powered suggestions to improve your resume.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ImprovementsTab
+              improvements={analysisResult.improvements}
+              originalResume={resumeText}
+              onExport={handleExport}
+              onGenerate={() => handleGeneration('improvement')}
+              isLoading={!!loading.improvement}
+            />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
