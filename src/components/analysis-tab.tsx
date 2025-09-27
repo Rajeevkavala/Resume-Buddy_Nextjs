@@ -1,3 +1,4 @@
+
 import type {AnalyzeResumeContentOutput} from '@/ai/flows/analyze-resume-content';
 import {
   Card,
@@ -10,7 +11,7 @@ import {Badge} from '@/components/ui/badge';
 import {Button} from './ui/button';
 import {Loader2, RefreshCw, CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
 import { Separator } from './ui/separator';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Label } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from './ui/chart';
 import { Progress } from './ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -85,17 +86,13 @@ export default function AnalysisTab({
   const atsScore = analysis.atsScore || 0;
   const atsChartData = [
     { name: 'Score', value: atsScore, fill: 'hsl(var(--primary))' },
-    { name: 'Remaining', value: 100 - atsScore, fill: 'hsl(var(--muted))' },
+    { name: 'Remaining', value: 100 - atsScore, fill: 'hsl(var(--destructive))' },
   ];
 
-  const presentKeywordsCount = analysis.keywordAnalysis.presentKeywords.length;
-  const missingKeywordsCount = analysis.keywordAnalysis.missingKeywords.length;
+  const presentKeywordsCount = analysis.keywordAnalysis?.presentKeywords?.length || 0;
+  const missingKeywordsCount = analysis.keywordAnalysis?.missingKeywords?.length || 0;
   const totalKeywords = presentKeywordsCount + missingKeywordsCount;
   const skillsMatch = totalKeywords > 0 ? Math.round((presentKeywordsCount / totalKeywords) * 100) : 0;
-  const skillsMatchChartData = [
-    { name: 'Matched', value: skillsMatch, fill: 'hsl(var(--chart-2))' },
-    { name: 'Missing', value: 100 - skillsMatch, fill: 'hsl(var(--muted))' },
-  ];
 
   return (
     <div className="space-y-6">
@@ -149,7 +146,7 @@ export default function AnalysisTab({
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Word Count</CardDescription>
-            <CardTitle className="text-4xl">{analysis.qualityMetrics.wordCount}</CardTitle>
+            <CardTitle className="text-4xl">{analysis.qualityMetrics?.wordCount || 'N/A'}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-xs text-muted-foreground">words (300-800 optimal)</div>
@@ -177,7 +174,7 @@ export default function AnalysisTab({
                 <CardContent className="space-y-6">
                     <div>
                         <h4 className="font-semibold mb-3 flex items-center"><CheckCircle className="mr-2 h-5 w-5 text-green-500" /> Matched Skills ({presentKeywordsCount})</h4>
-                        {analysis.keywordAnalysis.presentKeywords.length > 0 ? (
+                        {analysis.keywordAnalysis?.presentKeywords && analysis.keywordAnalysis.presentKeywords.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                                 {analysis.keywordAnalysis.presentKeywords.map((skill, index) => (
                                 <Badge key={index} variant="secondary">
@@ -192,7 +189,7 @@ export default function AnalysisTab({
                     <Separator/>
                     <div>
                         <h4 className="font-semibold mb-3 flex items-center"><XCircle className="mr-2 h-5 w-5 text-red-500" /> Missing Skills ({missingKeywordsCount})</h4>
-                        {analysis.keywordAnalysis.missingKeywords.length > 0 ? (
+                        {analysis.keywordAnalysis?.missingKeywords && analysis.keywordAnalysis.missingKeywords.length > 0 ? (
                             <div className="space-y-2">
                                {analysis.keywordAnalysis.missingKeywords.map((item, index) => (
                                 <Badge key={index} variant={item.criticality === "Critical" || item.criticality === "High" ? "destructive" : "default"} className="flex items-center w-fit">
@@ -216,62 +213,68 @@ export default function AnalysisTab({
                     <CardDescription>Assessment of your resume's content and structure.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="space-y-1">
-                        <div className="flex justify-between items-baseline">
-                            <label className="text-sm font-medium">Length Score</label>
-                            <span className="text-sm font-bold">{analysis.qualityMetrics.lengthScore}/100</span>
+                    {analysis.qualityMetrics && (
+                        <>
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-baseline">
+                                <label className="text-sm font-medium">Length Score</label>
+                                <span className="text-sm font-bold">{analysis.qualityMetrics.lengthScore}/100</span>
+                            </div>
+                            <Progress value={analysis.qualityMetrics.lengthScore} />
                         </div>
-                        <Progress value={analysis.qualityMetrics.lengthScore} />
-                    </div>
-                    <div className="space-y-1">
-                        <div className="flex justify-between items-baseline">
-                            <label className="text-sm font-medium">Structure</label>
-                             <span className="text-sm font-bold">{analysis.qualityMetrics.structureScore}/100</span>
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-baseline">
+                                <label className="text-sm font-medium">Structure</label>
+                                <span className="text-sm font-bold">{analysis.qualityMetrics.structureScore}/100</span>
+                            </div>
+                            <Progress value={analysis.qualityMetrics.structureScore} />
                         </div>
-                        <Progress value={analysis.qualityMetrics.structureScore} />
-                    </div>
-                     <div className="space-y-1">
-                        <div className="flex justify-between items-baseline">
-                            <label className="text-sm font-medium">Readability</label>
-                             <span className="text-sm font-bold">{analysis.qualityMetrics.readabilityScore}/100</span>
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-baseline">
+                                <label className="text-sm font-medium">Readability</label>
+                                <span className="text-sm font-bold">{analysis.qualityMetrics.readabilityScore}/100</span>
+                            </div>
+                            <Progress value={analysis.qualityMetrics.readabilityScore} />
                         </div>
-                        <Progress value={analysis.qualityMetrics.readabilityScore} />
-                    </div>
+                        </>
+                    )}
                 </CardContent>
             </Card>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Industry Compatibility</CardTitle>
-          <CardDescription>How your resume aligns with different industries based on the job description.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Industry</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Compatibility Score</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {analysis.industryCompatibility.map((item) => (
-                        <TableRow key={item.industry}>
-                            <TableCell className="font-medium">{item.industry}</TableCell>
-                            <TableCell>
-                                <Badge variant={item.status === 'High' || item.status === 'Good' ? 'secondary' : 'outline'}>
-                                    {item.status}
-                                </Badge>
-                            </TableCell>
-                            <TableCell className="text-right font-bold">{item.score}/100</TableCell>
+      {analysis.industryCompatibility && analysis.industryCompatibility.length > 0 && (
+        <Card>
+            <CardHeader>
+            <CardTitle>Industry Compatibility</CardTitle>
+            <CardDescription>How your resume aligns with different industries based on the job description.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Industry</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Compatibility Score</TableHead>
                         </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </CardContent>
-      </Card>
+                    </TableHeader>
+                    <TableBody>
+                        {analysis.industryCompatibility.map((item) => (
+                            <TableRow key={item.industry}>
+                                <TableCell className="font-medium">{item.industry}</TableCell>
+                                <TableCell>
+                                    <Badge variant={item.status === 'High' || item.status === 'Good' ? 'secondary' : 'outline'}>
+                                        {item.status}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-right font-bold">{item.score}/100</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -296,3 +299,5 @@ export default function AnalysisTab({
     </div>
   );
 }
+
+    
