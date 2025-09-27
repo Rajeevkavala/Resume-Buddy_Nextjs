@@ -40,7 +40,7 @@ export default function InterviewTab({
     return 'Generate Interview Questions';
   }
 
-  if (!interview || (interview && hasDataChanged)) {
+  if (!interview || hasDataChanged) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg min-h-[400px]">
         <p className="text-muted-foreground mb-4">

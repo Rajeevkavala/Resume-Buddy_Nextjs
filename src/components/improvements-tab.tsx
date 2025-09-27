@@ -39,7 +39,7 @@ export default function ImprovementsTab({
     return 'Generate Improvements';
   }
 
-  if (!improvements || (improvements && hasDataChanged)) {
+  if (!improvements || hasDataChanged) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg min-h-[400px]">
         <p className="text-muted-foreground mb-4">
