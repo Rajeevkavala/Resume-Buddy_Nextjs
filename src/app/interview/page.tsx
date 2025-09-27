@@ -18,14 +18,22 @@ export default function InterviewPage() {
   const [interview, setInterview] = useState<GenerateInterviewQuestionsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(true);
+  const [storedResumeText, setStoredResumeText] = useState<string | undefined>('');
+  const [storedJobDescription, setStoredJobDescription] = useState<string | undefined>('');
+
+  const hasDataChanged = resumeText !== storedResumeText || jobDescription !== storedJobDescription;
 
   useEffect(() => {
     if (user) {
       const fetchData = async () => {
         setIsDataLoading(true);
         const data = await loadData(user.uid);
-        if (data?.interview) {
-          setInterview(data.interview);
+        if (data) {
+          if (data.interview) {
+            setInterview(data.interview);
+          }
+          setStoredResumeText(data.resumeText);
+          setStoredJobDescription(data.jobDescription);
         }
         setIsDataLoading(false);
       };
@@ -54,6 +62,8 @@ export default function InterviewPage() {
       loading: 'Generating interview questions...',
       success: (result) => {
         setInterview(result);
+        setStoredResumeText(resumeText);
+        setStoredJobDescription(jobDescription);
         return 'Interview prep complete!';
       },
       error: (error) => {
@@ -87,6 +97,7 @@ export default function InterviewPage() {
             interview={interview}
             onGenerate={handleGeneration}
             isLoading={isLoading}
+            hasDataChanged={hasDataChanged}
           />
         </CardContent>
       </Card>

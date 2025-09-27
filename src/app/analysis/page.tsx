@@ -18,14 +18,22 @@ export default function AnalysisPage() {
   const [analysis, setAnalysis] = useState<AnalyzeResumeContentOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(true);
+  const [storedResumeText, setStoredResumeText] = useState<string | undefined>('');
+  const [storedJobDescription, setStoredJobDescription] = useState<string | undefined>('');
+
+  const hasDataChanged = resumeText !== storedResumeText || jobDescription !== storedJobDescription;
 
   useEffect(() => {
     if (user) {
       const fetchData = async () => {
         setIsDataLoading(true);
         const data = await loadData(user.uid);
-        if (data?.analysis) {
-          setAnalysis(data.analysis);
+        if (data) {
+          if (data.analysis) {
+            setAnalysis(data.analysis);
+          }
+          setStoredResumeText(data.resumeText);
+          setStoredJobDescription(data.jobDescription);
         }
         setIsDataLoading(false);
       };
@@ -56,6 +64,8 @@ export default function AnalysisPage() {
       loading: 'Analyzing your resume...',
       success: (result) => {
         setAnalysis(result);
+        setStoredResumeText(resumeText);
+        setStoredJobDescription(jobDescription);
         return 'Analysis Complete!';
       },
       error: (error) => {
@@ -89,6 +99,7 @@ export default function AnalysisPage() {
             analysis={analysis}
             onGenerate={handleGeneration}
             isLoading={isLoading}
+            hasDataChanged={hasDataChanged}
           />
         </CardContent>
       </Card>

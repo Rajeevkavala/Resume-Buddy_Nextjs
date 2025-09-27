@@ -19,14 +19,22 @@ export default function QAPage() {
   const [qa, setQa] = useState<GenerateResumeQAOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(true);
+  const [storedResumeText, setStoredResumeText] = useState<string | undefined>('');
+  const [storedJobDescription, setStoredJobDescription] = useState<string | undefined>('');
+
+  const hasDataChanged = resumeText !== storedResumeText || jobDescription !== storedJobDescription;
 
   useEffect(() => {
     if (user) {
       const fetchData = async () => {
         setIsDataLoading(true);
         const data = await loadData(user.uid);
-        if (data?.qa) {
-          setQa(data.qa);
+        if (data) {
+          if (data.qa) {
+            setQa(data.qa);
+          }
+          setStoredResumeText(data.resumeText);
+          setStoredJobDescription(data.jobDescription);
         }
         setIsDataLoading(false);
       };
@@ -55,6 +63,8 @@ export default function QAPage() {
       loading: 'Generating Q&A...',
       success: (result) => {
         setQa(result);
+        setStoredResumeText(resumeText);
+        setStoredJobDescription(jobDescription);
         return 'Q&A pairs generated successfully!';
       },
       error: (error) => {
@@ -88,6 +98,7 @@ export default function QAPage() {
             qa={qa}
             onGenerate={handleGeneration}
             isLoading={isLoading}
+            hasDataChanged={hasDataChanged}
           />
         </CardContent>
       </Card>

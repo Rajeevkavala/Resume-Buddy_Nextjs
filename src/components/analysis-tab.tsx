@@ -1,3 +1,4 @@
+
 import type {AnalyzeResumeContentOutput} from '@/ai/flows/analyze-resume-content';
 import {
   Card,
@@ -9,29 +10,43 @@ import {
 import {Badge} from '@/components/ui/badge';
 import {Progress} from '@/components/ui/progress';
 import {Button} from './ui/button';
-import {Loader2, CheckCircle, XCircle} from 'lucide-react';
+import {Loader2, CheckCircle, XCircle, RefreshCw} from 'lucide-react';
 import { Separator } from './ui/separator';
 
 interface AnalysisTabProps {
   analysis: AnalyzeResumeContentOutput | null;
   onGenerate: () => void;
   isLoading: boolean;
+  hasDataChanged?: boolean;
 }
 
 export default function AnalysisTab({
   analysis,
   onGenerate,
   isLoading,
+  hasDataChanged,
 }: AnalysisTabProps) {
-  if (!analysis) {
+
+  const getButtonContent = () => {
+    if (isLoading) {
+      return <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</>;
+    }
+    if (analysis && hasDataChanged) {
+      return <><RefreshCw className="mr-2 h-4 w-4" /> Regenerate Analysis</>;
+    }
+    return 'Generate Analysis';
+  }
+
+  if (!analysis || hasDataChanged) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg min-h-[400px]">
         <p className="text-muted-foreground mb-4">
-          Generate an in-depth analysis of your resume against the job description.
+          {analysis && hasDataChanged 
+            ? 'Your resume or job description has changed.' 
+            : 'Generate an in-depth analysis of your resume against the job description.'}
         </p>
         <Button onClick={onGenerate} disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Generate Analysis
+          {getButtonContent()}
         </Button>
       </div>
     );

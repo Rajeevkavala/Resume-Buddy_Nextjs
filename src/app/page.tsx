@@ -14,13 +14,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { ResumeContext } from '@/context/resume-context';
 import FileUploader from '@/components/file-uploader';
 import { Button } from '@/components/ui/button';
-import { extractText, saveData } from './actions';
+import { extractText, saveData, clearData } from './actions';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Save, Trash2 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { loadData } from '@/lib/firestore';
-import { useDebounce } from '@/hooks/use-debounce';
 
 export default function Home() {
   const {
@@ -35,8 +34,6 @@ export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  const debouncedJobDescription = useDebounce(jobDescription, 500);
-
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
@@ -46,61 +43,41 @@ export default function Home() {
   useEffect(() => {
     if (user) {
       const fetchData = async () => {
+        setIsLoading(true);
         const data = await loadData(user.uid);
         if (data) {
           if (data.resumeText) setResumeText(data.resumeText);
           if (data.jobDescription) setJobDescription(data.jobDescription);
         }
+        setIsLoading(false);
       };
       fetchData();
     }
   }, [user, setResumeText, setJobDescription]);
-
-  const handleSaveData = useCallback(async (data: { resumeText?: string; jobDescription?: string }) => {
-    if (user) {
-      try {
-        await saveData(user.uid, data);
-      } catch (error) {
-        toast.error('Failed to save data.');
-      }
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (debouncedJobDescription && user) {
-      handleSaveData({ jobDescription: debouncedJobDescription });
-    }
-  }, [debouncedJobDescription, user, handleSaveData]);
 
   const handleProcessResume = async () => {
     if (!resumeFile) {
       toast.error('Please upload a resume file first.');
       return;
     }
-    if (!user) {
-      toast.error('You must be logged in.');
-      return;
-    }
-
+    
     const formData = new FormData();
     formData.append('resume', resumeFile);
 
     setIsLoading(true);
 
-    const promise = extractText(formData).then(async result => {
+    const promise = extractText(formData).then(result => {
       if (result.error) {
         throw new Error(result.error);
       }
-      const newResumeText = result.text || '';
-      setResumeText(newResumeText);
-      await handleSaveData({ resumeText: newResumeText });
-      return result;
+      setResumeText(result.text || '');
+      return 'Resume processed successfully! Click "Save Data" to persist it.';
     });
 
 
     toast.promise(promise, {
       loading: 'Extracting text from your resume...',
-      success: 'Resume processed and saved successfully!',
+      success: (message) => message,
       error: err => {
         return err.message || 'An unexpected error occurred.';
       },
@@ -110,6 +87,43 @@ export default function Home() {
     });
   };
   
+  const handleSaveData = async () => {
+    if (!user) {
+      toast.error('You must be logged in to save data.');
+      return;
+    }
+    if (!resumeText && !jobDescription) {
+      toast.error('There is no data to save.');
+      return;
+    }
+
+    const promise = saveData(user.uid, { resumeText, jobDescription });
+    toast.promise(promise, {
+      loading: 'Saving your data...',
+      success: 'Data saved successfully!',
+      error: 'Failed to save data.',
+    });
+  };
+
+  const handleClearData = async () => {
+    if (!user) {
+      toast.error('You must be logged in to clear data.');
+      return;
+    }
+
+    const promise = clearData(user.uid);
+    toast.promise(promise, {
+      loading: 'Clearing your data...',
+      success: () => {
+        setResumeText('');
+        setJobDescription('');
+        setResumeFile(null);
+        return 'Data cleared successfully!';
+      },
+      error: 'Failed to clear data.',
+    });
+  };
+
   if (loading || !user) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -122,11 +136,26 @@ export default function Home() {
     <main className="flex-1 p-4 md:p-8">
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline text-2xl">Dashboard</CardTitle>
-          <CardDescription>
-            Upload your resume and paste the target job description below to get
-            started. Your work is saved automatically.
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="font-headline text-2xl">Dashboard</CardTitle>
+              <CardDescription>
+                Upload your resume, paste the job description, and then save your data.
+              </CardDescription>
+            </div>
+            {(resumeText || jobDescription) && (
+               <div className="flex gap-2 mt-4 sm:mt-0">
+                <Button onClick={handleSaveData}>
+                  <Save className="mr-2" />
+                  Save Data
+                </Button>
+                <Button variant="destructive" onClick={handleClearData}>
+                   <Trash2 className="mr-2" />
+                  Clear Data
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -162,7 +191,7 @@ export default function Home() {
                     placeholder="Extracted text will appear here..."
                     className="min-h-[300px] text-sm bg-muted/50"
                     value={resumeText}
-                    readOnly
+                    onChange={e => setResumeText(e.target.value)}
                   />
                 </div>
               )}

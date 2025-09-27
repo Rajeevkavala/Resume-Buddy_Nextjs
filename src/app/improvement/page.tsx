@@ -23,14 +23,22 @@ export default function ImprovementPage() {
   const [improvements, setImprovements] = useState<SuggestResumeImprovementsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(true);
+  const [storedResumeText, setStoredResumeText] = useState<string | undefined>('');
+  const [storedJobDescription, setStoredJobDescription] = useState<string | undefined>('');
+
+  const hasDataChanged = resumeText !== storedResumeText || jobDescription !== storedJobDescription;
 
   useEffect(() => {
     if (user) {
       const fetchData = async () => {
         setIsDataLoading(true);
         const data = await loadData(user.uid);
-        if (data?.improvements) {
-          setImprovements(data.improvements);
+        if (data) {
+          if (data.improvements) {
+            setImprovements(data.improvements);
+          }
+          setStoredResumeText(data.resumeText);
+          setStoredJobDescription(data.jobDescription);
         }
         setIsDataLoading(false);
       };
@@ -59,6 +67,8 @@ export default function ImprovementPage() {
       loading: 'Generating improvements...',
       success: (result) => {
         setImprovements(result);
+        setStoredResumeText(resumeText);
+        setStoredJobDescription(jobDescription);
         return 'Improvements generated successfully!';
       },
       error: (error) => {
@@ -124,6 +134,7 @@ export default function ImprovementPage() {
             onExport={handleExport}
             onGenerate={handleGeneration}
             isLoading={isLoading}
+            hasDataChanged={hasDataChanged}
           />
         </CardContent>
       </Card>

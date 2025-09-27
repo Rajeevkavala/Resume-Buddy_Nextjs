@@ -1,5 +1,5 @@
 
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import type { User } from 'firebase/auth';
 import type { AnalysisResult } from './types';
@@ -33,20 +33,26 @@ export const saveData = async (
   }
   try {
     const dataRef = doc(db, `users/${userId}/resumeData`, 'latest');
-    const existingData = (await getDoc(dataRef)).data() as AnalysisResult | undefined;
-    
-    const newData = {
-      ...existingData,
-      ...data,
-      updatedAt: new Date(),
-    };
-
-    await setDoc(dataRef, newData, { merge: true });
+    await setDoc(dataRef, { ...data, updatedAt: new Date() }, { merge: true });
   } catch (error) {
     console.error('Error saving resume data:', error);
     throw new Error('Could not save resume data.');
   }
 };
+
+export const clearData = async (userId: string) => {
+   if (!userId) {
+    throw new Error('User ID is required to clear data.');
+  }
+  try {
+    const dataRef = doc(db, `users/${userId}/resumeData`, 'latest');
+    // We set it to an empty object, but keep updatedAt for tracking.
+    await setDoc(dataRef, { updatedAt: new Date() });
+  } catch (error) {
+    console.error('Error clearing resume data:', error);
+    throw new Error('Could not clear resume data.');
+  }
+}
 
 export const loadData = async (
   userId: string

@@ -1,3 +1,4 @@
+
 import type {GenerateInterviewQuestionsOutput} from '@/ai/flows/generate-interview-questions';
 import {
   Accordion,
@@ -13,28 +14,42 @@ import {
   CardTitle,
 } from './ui/card';
 import {Button} from './ui/button';
-import {Loader2} from 'lucide-react';
+import {Loader2, RefreshCw} from 'lucide-react';
 
 interface InterviewTabProps {
   interview: GenerateInterviewQuestionsOutput | null;
   onGenerate: () => void;
   isLoading: boolean;
+  hasDataChanged?: boolean;
 }
 
 export default function InterviewTab({
   interview,
   onGenerate,
   isLoading,
+  hasDataChanged,
 }: InterviewTabProps) {
-  if (!interview) {
+  
+  const getButtonContent = () => {
+    if (isLoading) {
+      return <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</>;
+    }
+    if (interview && hasDataChanged) {
+      return <><RefreshCw className="mr-2 h-4 w-4" /> Regenerate Questions</>;
+    }
+    return 'Generate Interview Questions';
+  }
+
+  if (!interview || (interview && hasDataChanged)) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg min-h-[400px]">
         <p className="text-muted-foreground mb-4">
-          Generate interview questions and answers tailored to the role.
+          {interview && hasDataChanged
+            ? 'Your resume or job description has changed.'
+            : 'Generate interview questions and answers tailored to the role.'}
         </p>
         <Button onClick={onGenerate} disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Generate Interview Questions
+          {getButtonContent()}
         </Button>
       </div>
     );

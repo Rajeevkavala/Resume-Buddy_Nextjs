@@ -1,3 +1,4 @@
+
 import type {SuggestResumeImprovementsOutput} from '@/ai/flows/suggest-resume-improvements';
 import {Button} from '@/components/ui/button';
 import {
@@ -8,7 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {ScrollArea} from '@/components/ui/scroll-area';
-import {Download, FileText, Loader2} from 'lucide-react';
+import {Download, FileText, Loader2, RefreshCw} from 'lucide-react';
 
 interface ImprovementsTabProps {
   improvements: SuggestResumeImprovementsOutput | null;
@@ -16,6 +17,7 @@ interface ImprovementsTabProps {
   onExport: (format: 'docx' | 'pdf') => void;
   onGenerate: () => void;
   isLoading: boolean;
+  hasDataChanged?: boolean;
 }
 
 export default function ImprovementsTab({
@@ -24,16 +26,29 @@ export default function ImprovementsTab({
   onExport,
   onGenerate,
   isLoading,
+  hasDataChanged,
 }: ImprovementsTabProps) {
-  if (!improvements) {
+
+  const getButtonContent = () => {
+    if (isLoading) {
+      return <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</>;
+    }
+    if (improvements && hasDataChanged) {
+      return <><RefreshCw className="mr-2 h-4 w-4" /> Regenerate Improvements</>;
+    }
+    return 'Generate Improvements';
+  }
+
+  if (!improvements || (improvements && hasDataChanged)) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg min-h-[400px]">
         <p className="text-muted-foreground mb-4">
-          Generate an improved version of your resume.
+          {improvements && hasDataChanged
+            ? 'Your resume or job description has changed.'
+            : 'Generate an improved version of your resume.'}
         </p>
         <Button onClick={onGenerate} disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Generate Improvements
+          {getButtonContent()}
         </Button>
       </div>
     );

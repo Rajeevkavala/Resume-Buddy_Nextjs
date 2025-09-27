@@ -1,3 +1,4 @@
+
 import type {GenerateResumeQAOutput} from '@/ai/flows/generate-resume-qa';
 import {
   Accordion,
@@ -13,24 +14,37 @@ import {
   CardTitle,
 } from './ui/card';
 import {Button} from './ui/button';
-import {Loader2} from 'lucide-react';
+import {Loader2, RefreshCw} from 'lucide-react';
 
 interface QATabProps {
   qa: GenerateResumeQAOutput | null;
   onGenerate: () => void;
   isLoading: boolean;
+  hasDataChanged?: boolean;
 }
 
-export default function QATab({qa, onGenerate, isLoading}: QATabProps) {
-  if (!qa) {
+export default function QATab({qa, onGenerate, isLoading, hasDataChanged}: QATabProps) {
+  
+  const getButtonContent = () => {
+    if (isLoading) {
+      return <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</>;
+    }
+    if (qa && hasDataChanged) {
+      return <><RefreshCw className="mr-2 h-4 w-4" /> Regenerate Q&A</>;
+    }
+    return 'Generate Q&A';
+  }
+  
+  if (!qa || (qa && hasDataChanged)) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg min-h-[400px]">
         <p className="text-muted-foreground mb-4">
-          Generate questions and answers based on your resume.
+          {qa && hasDataChanged
+            ? 'Your resume or job description has changed.'
+            : 'Generate questions and answers based on your resume.'}
         </p>
         <Button onClick={onGenerate} disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Generate Q&A
+          {getButtonContent()}
         </Button>
       </div>
     );

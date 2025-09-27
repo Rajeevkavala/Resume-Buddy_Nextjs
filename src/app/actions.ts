@@ -10,7 +10,7 @@ import {Packer, Document, Paragraph, TextRun} from 'docx';
 import PDFDocument from 'pdfkit';
 import mammoth from 'mammoth';
 import pdf from 'pdf-parse-fork';
-import { saveData as saveToDb } from '@/lib/firestore';
+import { saveData as saveToDb, clearData as clearFromDb } from '@/lib/firestore';
 import type { AnalysisResult } from '@/lib/types';
 
 const baseSchema = z.object({
@@ -68,6 +68,10 @@ export async function saveData(
   return saveToDb(userId, data);
 }
 
+export async function clearData(userId: string) {
+  return clearFromDb(userId);
+}
+
 export async function runAnalysisAction(input: {
   userId: string;
   resumeText: string;
@@ -78,7 +82,7 @@ export async function runAnalysisAction(input: {
     throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
   }
   const analysis = await analyzeResumeContent(validatedFields.data);
-  await saveToDb(input.userId, { analysis });
+  await saveToDb(input.userId, { analysis, resumeText: input.resumeText, jobDescription: input.jobDescription });
   return analysis;
 }
 
