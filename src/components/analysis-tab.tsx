@@ -12,7 +12,6 @@ import {Button} from './ui/button';
 import {Loader2, RefreshCw, CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
 import { Separator } from './ui/separator';
 import { PieChart, Pie, Cell, ResponsiveContainer, Label } from 'recharts';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from './ui/chart';
 import { Progress } from './ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 
@@ -96,23 +95,15 @@ export default function AnalysisTab({
 
   return (
     <div className="space-y-6">
-       <Card>
-        <CardHeader>
-            <CardTitle>Regenerate Analysis</CardTitle>
-            <CardDescription>
-                Click the button below to regenerate the analysis with the new data.
-            </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Button onClick={onGenerate} disabled={isLoading}>
+       <div className="flex justify-end">
+            <Button onClick={onGenerate} disabled={isLoading} variant="outline" size="sm">
                 {isLoading ? (
                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Regenerating...</>
                 ) : (
                     <><RefreshCw className="mr-2 h-4 w-4" /> Regenerate Analysis</>
                 )}
             </Button>
-        </CardContent>
-      </Card>
+        </div>
       
       {/* Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
