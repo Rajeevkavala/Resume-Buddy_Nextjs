@@ -11,7 +11,7 @@ import {Badge} from '@/components/ui/badge';
 import {Button} from './ui/button';
 import {Loader2, CheckCircle, XCircle, RefreshCw} from 'lucide-react';
 import { Separator } from './ui/separator';
-import { Bar, BarChart, LabelList, RadialBar, RadialBarChart, ResponsiveContainer, XAxis, YAxis, Legend } from 'recharts';
+import { Bar, BarChart, LabelList, ResponsiveContainer, XAxis, YAxis, Legend, PieChart, Pie, Cell } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from './ui/chart';
 
 interface AnalysisTabProps {
@@ -55,7 +55,7 @@ export default function AnalysisTab({
 
   const atsScore = analysis.atsScore || 0;
   const atsChartData = [
-    { name: 'ATS Score', value: atsScore, fill: 'hsl(var(--primary))' },
+    { name: 'Score', value: atsScore, fill: 'hsl(var(--primary))' },
     { name: 'Remaining', value: 100 - atsScore, fill: 'hsl(var(--destructive))' },
   ];
 
@@ -112,25 +112,41 @@ export default function AnalysisTab({
               How well your resume is optimized for applicant tracking systems.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center space-y-2 pt-4">
-             <ChartContainer config={{}} className="mx-auto aspect-square h-[200px]">
-              <RadialBarChart
-                data={atsChartData}
-                startAngle={90}
-                endAngle={-270}
-                innerRadius={80}
-                outerRadius={100}
-                barSize={10}
-              >
-                <RadialBar dataKey="value" background cornerRadius={5} />
-                <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-4xl font-bold font-headline">
-                  {analysis.atsScore}
-                </text>
-                <text x="50%" y="65%" textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground text-sm">
-                  out of 100
-                </text>
-              </RadialBarChart>
+          <CardContent className="flex items-center justify-center space-x-4 pt-4">
+             <ChartContainer config={{}} className="mx-auto aspect-square h-[150px]">
+              <PieChart>
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent hideLabel />}
+                />
+                <Pie
+                  data={atsChartData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={70}
+                  innerRadius={0}
+                  fill="fill"
+                >
+                  {atsChartData.map((entry) => (
+                    <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+              </PieChart>
             </ChartContainer>
+            <div className="flex flex-col gap-2 text-sm">
+                <div className='flex items-center'>
+                    <div className='w-3 h-3 rounded-full mr-2' style={{backgroundColor: 'hsl(var(--primary))'}}/>
+                    <span className="font-semibold text-foreground">{atsScore}%</span>
+                    <span className='ml-1 text-muted-foreground'>Score</span>
+                </div>
+                <div className='flex items-center'>
+                     <div className='w-3 h-3 rounded-full mr-2' style={{backgroundColor: 'hsl(var(--destructive))'}}/>
+                    <span className="font-semibold text-foreground">{100 - atsScore}%</span>
+                    <span className='ml-1 text-muted-foreground'>Remaining</span>
+                </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -172,7 +188,7 @@ export default function AnalysisTab({
                         <Bar dataKey="value" layout="vertical" radius={5} barSize={25}>
                             <LabelList dataKey="value" position="right" offset={8} className="fill-foreground font-semibold" />
                              {keywordChartData.map((entry) => (
-                                <rect key={entry.name} fill={entry.fill} />
+                                <Cell key={entry.name} fill={entry.fill} />
                             ))}
                         </Bar>
                     </BarChart>
@@ -238,7 +254,3 @@ export default function AnalysisTab({
     </div>
   );
 }
-
-    
-
-    
