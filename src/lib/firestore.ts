@@ -1,5 +1,5 @@
 
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import type { User } from 'firebase/auth';
 import type { AnalysisResult } from './types';
@@ -46,8 +46,7 @@ export const clearData = async (userId: string) => {
   }
   try {
     const dataRef = doc(db, `users/${userId}/resumeData`, 'latest');
-    // We set it to an empty object, but keep updatedAt for tracking.
-    await setDoc(dataRef, { updatedAt: new Date() });
+    await deleteDoc(dataRef);
   } catch (error) {
     console.error('Error clearing resume data:', error);
     throw new Error('Could not clear resume data.');
