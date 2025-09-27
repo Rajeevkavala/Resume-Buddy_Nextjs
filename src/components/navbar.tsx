@@ -31,8 +31,8 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
-      <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
-        <div className="flex gap-10">
+      <div className="container flex h-16 items-center justify-between">
+        <div className="flex items-center gap-10">
           <Link href="/" className="flex items-center space-x-2">
             <div className='flex items-center gap-2'>
               <Icons.logo className="text-primary" />
@@ -56,7 +56,7 @@ export default function Navbar() {
             </nav>
           )}
         </div>
-        <div className="flex flex-1 items-center justify-end space-x-4">
+        <div className="flex items-center space-x-4">
           <div className="hidden md:flex items-center space-x-2">
             <ThemeToggle />
             {user ? (
