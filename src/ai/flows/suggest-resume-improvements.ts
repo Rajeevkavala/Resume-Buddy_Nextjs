@@ -17,7 +17,7 @@ const SuggestResumeImprovementsInputSchema = z.object({
     .describe('The text content of the resume to be improved.'),
   jobDescription: z
     .string()
-    .optional()
+al()
     .describe('The job description for tailoring the resume improvements.'),
 });
 export type SuggestResumeImprovementsInput = z.infer<
@@ -46,25 +46,40 @@ const prompt = ai.definePrompt({
   name: 'suggestResumeImprovementsPrompt',
   input: {schema: SuggestResumeImprovementsInputSchema},
   output: {schema: SuggestResumeImprovementsOutputSchema},
-  prompt: `You are an expert resume writer. You will improve the provided resume text to be more professional and effective, optimizing it for both ATS systems and human recruiters. If a job description is provided, tailor the resume to match the job requirements and highlight relevant skills and experiences.
+  prompt: `You are an expert resume writer and career coach. Your task is to perform a comprehensive overhaul of the provided resume text. If a job description is provided, you must tailor the resume to that specific role.
 
-Resume Text:
+**Resume Text:**
+\`\`\`
 {{{resumeText}}}
+\`\`\`
 
 {{#if jobDescription}}
-Job Description:
+**Job Description:**
+\`\`\`
 {{{jobDescription}}}
+\`\`\`
 {{/if}}
 
-Instructions:
-1. Rewrite the resume content to be more concise, clear, and impactful.
-2. Use action verbs and quantifiable results to demonstrate accomplishments.
-3. Optimize the resume for ATS systems by including relevant keywords from the job description (if provided).
-4. Ensure proper formatting and structure for easy readability.
-5. Provide a summary of the improvements made.
+**Instructions:**
 
-Your response should be in the format defined by the output schema.
-`,
+1.  **Rewrite and Restructure:** Do not just edit; completely rewrite the resume for maximum impact. Reorganize sections if necessary to better highlight the candidate's strengths for the target role. The output should be a full, complete resume text.
+
+2.  **Craft a Powerful Summary:** Create a compelling new professional summary (3-4 sentences) that immediately captures a recruiter's attention. It must integrate key skills from the job description and state a clear value proposition.
+
+3.  **Quantify Achievements (Crucial):** This is the most important step. Transform all generic responsibilities and duties into specific, metric-based achievements. Invent realistic, industry-appropriate metrics where they are missing. For example:
+    *   "Managed a team" becomes "Led a team of 8 developers, resulting in a 25% increase in productivity."
+    *   "Worked on web applications" becomes "Architected and launched three full-stack web applications, serving over 50,000 monthly active users."
+    *   "Fixed bugs" becomes "Reduced production bugs by 40% through implementation of a comprehensive testing suite."
+
+4.  **Integrate Missing Keywords:** Seamlessly weave keywords and skills from the job description into the professional summary and work experience sections. The integration must feel natural and be supported by the context of the achievement.
+
+5.  **Use Powerful Action Verbs:** Start every bullet point with a strong, impactful action verb (e.g., "Architected," "Orchestrated," "Spearheaded," "Accelerated," "Quantified").
+
+6.  **Format for Readability and ATS-Compliance:** Ensure the final text is well-formatted, with clear headings and consistent spacing. Use a structure that is easily parsed by Applicant Tracking Systems (ATS).
+
+7.  **Generate a Summary of Improvements:** After creating the improved resume, write a concise summary explaining the key changes you made. Highlight the most significant improvements, such as the addition of quantified metrics, the new professional summary, and how you integrated missing skills.
+
+Produce the output as a valid JSON object with \`improvedResumeText\` and \`improvementsSummary\` fields.`,
 });
 
 const suggestResumeImprovementsFlow = ai.defineFlow(
