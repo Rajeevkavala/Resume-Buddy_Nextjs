@@ -1,3 +1,4 @@
+
 import type {AnalyzeResumeContentOutput} from '@/ai/flows/analyze-resume-content';
 import {
   Card,
@@ -10,7 +11,7 @@ import {Badge} from '@/components/ui/badge';
 import {Button} from './ui/button';
 import {Loader2, RefreshCw, CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
 import { Separator } from './ui/separator';
-import { PieChart, Pie, Cell, ResponsiveContainer, Label, Tooltip as RechartsTooltip } from 'recharts';
+import { PieChart, Pie, Label } from 'recharts';
 import { Progress } from './ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from './ui/chart';
@@ -143,13 +144,13 @@ export default function AnalysisTab({
       
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card className="text-center">
+            <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">ATS Score</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="h-[120px]">
-                    <ChartContainer config={atsChartConfig}>
+                <div className="h-[120px] flex items-center justify-center">
+                    <ChartContainer config={atsChartConfig} className="w-full h-full">
                         <PieChart>
                              <ChartTooltip
                                 cursor={false}
@@ -191,30 +192,30 @@ export default function AnalysisTab({
                 </div>
             </CardContent>
         </Card>
-        <Card>
+        <Card className="text-center">
           <CardHeader className="pb-2">
-            <CardDescription>Skills Match</CardDescription>
-            <CardTitle className="text-4xl">{presentKeywordsCount}<span className="text-lg text-muted-foreground">/{totalKeywords}</span></CardTitle>
+            <CardTitle className="text-sm font-medium">Skills Match</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col items-center justify-center h-[120px]">
+             <div className="text-4xl font-bold">{presentKeywordsCount}<span className="text-lg text-muted-foreground">/{totalKeywords}</span></div>
              <div className="text-xs text-muted-foreground">{skillsMatchPercentage}% match</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="text-center">
           <CardHeader className="pb-2">
-            <CardDescription>Coverage</CardDescription>
-            <CardTitle className="text-4xl">{analysis.contentCoveragePercentage || 0}%</CardTitle>
+            <CardTitle className="text-sm font-medium">Coverage</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col items-center justify-center h-[120px]">
+            <div className="text-4xl font-bold">{analysis.contentCoveragePercentage || 0}%</div>
             <div className="text-xs text-muted-foreground">Job description coverage</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="text-center">
           <CardHeader className="pb-2">
-            <CardDescription>Word Count</CardDescription>
-            <CardTitle className="text-4xl">{analysis.qualityMetrics?.wordCount || 'N/A'}</CardTitle>
+            <CardTitle className="text-sm font-medium">Word Count</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col items-center justify-center h-[120px]">
+            <div className="text-4xl font-bold">{analysis.qualityMetrics?.wordCount || 'N/A'}</div>
             <div className="text-xs text-muted-foreground">300-800 optimal</div>
           </CardContent>
         </Card>
@@ -251,14 +252,29 @@ export default function AnalysisTab({
                             <p className="text-sm text-muted-foreground">No matching keywords found.</p>
                         )}
                     </div>
+                     <div>
+                        <h4 className="font-semibold mb-3 flex items-center"><XCircle className="mr-2 h-5 w-5 text-red-500" /> Missing Skills ({missingKeywordsCount})</h4>
+                        {analysis.keywordAnalysis?.missingKeywords && analysis.keywordAnalysis.missingKeywords.length > 0 ? (
+                           <div className="flex flex-wrap gap-2">
+                                {analysis.keywordAnalysis.missingKeywords.map((skill, index) => (
+                                <Badge key={index} variant="outline" className="flex items-center">
+                                    {getCriticalityIcon(skill.criticality)}
+                                    {skill.skill}
+                                </Badge>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">No missing keywords found.</p>
+                        )}
+                    </div>
                 </CardContent>
             </Card>
         </div>
          <div className="lg:col-span-2">
             <Card className="h-full">
                  <CardHeader>
-                    <CardTitle>Missing Skills ({missingKeywordsCount})</CardTitle>
-                    <CardDescription>Criticality of missing skills.</CardDescription>
+                    <CardTitle>Missing Skills Criticality</CardTitle>
+                    <CardDescription>A breakdown of missing skills by their importance for the role.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex justify-center items-center">
                     {missingKeywordsCount > 0 ? (
@@ -441,3 +457,4 @@ export default function AnalysisTab({
     </div>
   );
 }
+
