@@ -56,8 +56,8 @@ export default function AnalysisTab({
   const atsScore = analysis.atsScore || 0;
   const remainingScore = 100 - atsScore;
   const atsChartData = [
-    { name: 'Remaining', value: remainingScore, fill: 'hsl(var(--destructive))' },
     { name: 'ATS', value: atsScore, fill: 'hsl(var(--primary))' },
+    { name: 'Remaining', value: remainingScore, fill: 'hsl(var(--destructive))' },
   ];
 
   const coverageChartData = [{ name: 'Coverage', value: analysis.contentCoveragePercentage }];
@@ -121,10 +121,10 @@ export default function AnalysisTab({
                 endAngle={-270}
                 innerRadius={80}
                 outerRadius={100}
-                barSize={20}
+                barSize={10}
                 stackOffset="expand"
               >
-                <RadialBar dataKey="value" background cornerRadius={10} />
+                <RadialBar dataKey="value" stackId="a" background cornerRadius={5} />
                 <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-4xl font-bold font-headline">
                   {analysis.atsScore}
                 </text>
