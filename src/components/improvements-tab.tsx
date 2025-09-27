@@ -171,7 +171,7 @@ export default function ImprovementsTab({
             <CardContent>
                 <ScrollArea className="h-[300px]">
                     <div className="space-y-4">
-                        {quantifiedAchievements.map((item, index) => (
+                        {(quantifiedAchievements ?? []).map((item, index) => (
                             <div key={index} className="space-y-2 text-sm">
                                 <p className="text-muted-foreground line-through">{item.original || 'General duty'}</p>
                                 <div className="flex items-start gap-2">
@@ -201,7 +201,7 @@ export default function ImprovementsTab({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {integratedSkills.map((item, index) => (
+                            {(integratedSkills ?? []).map((item, index) => (
                                 <TableRow key={index}>
                                     <TableCell><Badge>{item.skill}</Badge></TableCell>
                                     <TableCell className="text-xs text-muted-foreground">"...{item.integrationPoint}..."</TableCell>
@@ -236,5 +236,3 @@ export default function ImprovementsTab({
     </div>
   );
 }
-
-    
