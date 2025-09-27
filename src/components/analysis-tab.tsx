@@ -53,11 +53,17 @@ export default function AnalysisTab({
     );
   }
 
-  const atsChartData = [{ name: 'ATS', value: analysis.atsScore, fill: 'hsl(var(--primary))' }];
+  const atsScore = analysis.atsScore || 0;
+  const remainingScore = 100 - atsScore;
+  const atsChartData = [
+    { name: 'Remaining', value: remainingScore, fill: 'hsl(var(--destructive))' },
+    { name: 'ATS', value: atsScore, fill: 'hsl(var(--primary))' },
+  ];
+
   const coverageChartData = [{ name: 'Coverage', value: analysis.contentCoveragePercentage }];
   const keywordChartData = [
-    { name: 'Present', value: analysis.keywordAnalysis.presentKeywords.length, fill: 'var(--color-present)' },
-    { name: 'Missing', value: analysis.keywordAnalysis.missingKeywords.length, fill: 'var(--color-missing)' },
+    { name: 'Present', value: analysis.keywordAnalysis.presentKeywords.length, fill: 'hsl(var(--chart-2))' },
+    { name: 'Missing', value: analysis.keywordAnalysis.missingKeywords.length, fill: 'hsl(var(--destructive))' },
   ];
   const chartConfig = {
       present: {
@@ -108,26 +114,23 @@ export default function AnalysisTab({
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center space-y-2 pt-4">
-            <ChartContainer config={{}} className="mx-auto aspect-square h-[200px]">
+             <ChartContainer config={{}} className="mx-auto aspect-square h-[200px]">
               <RadialBarChart
-                  data={atsChartData}
-                  startAngle={-270}
-                  endAngle={90}
-                  innerRadius={80}
-                  outerRadius={100}
-                  barSize={20}
+                data={atsChartData}
+                startAngle={90}
+                endAngle={-270}
+                innerRadius={80}
+                outerRadius={100}
+                barSize={20}
+                stackOffset="expand"
               >
-                  <RadialBar
-                      dataKey="value"
-                      background
-                      cornerRadius={10}
-                  />
-                  <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-4xl font-bold font-headline">
-                      {analysis.atsScore}
-                  </text>
-                  <text x="50%" y="65%" textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground text-sm">
-                      out of 100
-                  </text>
+                <RadialBar dataKey="value" background cornerRadius={10} />
+                <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-4xl font-bold font-headline">
+                  {analysis.atsScore}
+                </text>
+                <text x="50%" y="65%" textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground text-sm">
+                  out of 100
+                </text>
               </RadialBarChart>
             </ChartContainer>
           </CardContent>
