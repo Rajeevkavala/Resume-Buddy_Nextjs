@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext } from 'react';
@@ -34,11 +33,18 @@ export default function QAPage() {
     }
 
     setIsLoading(true);
-    setQa(null); // Clear previous Q&A data
+    // Clear only the data for the current topic to show the loading state correctly for that accordion
+    if (qa) {
+      setQa({ ...qa, [topic]: null });
+    } else {
+      setQa({ [topic]: null });
+    }
+
     const promise = runQAGenerationAction({ userId: user.uid, resumeText, jobDescription, topic }).then((result) => {
-        setQa(result);
+        const newQaData = { ...qa, [topic]: result };
+        setQa(newQaData);
         saveUserData(user.uid, {
-            qa: result,
+            qa: newQaData,
             resumeText,
             jobDescription,
         });
@@ -47,7 +53,7 @@ export default function QAPage() {
     });
 
     toast.promise(promise, {
-      loading: 'Generating Q&A...',
+      loading: `Generating Q&A for "${topic}"...`,
       success: () => 'Q&A pairs generated successfully!',
       error: (error) => error.message || 'An unexpected error occurred.',
       finally: () => setIsLoading(false)

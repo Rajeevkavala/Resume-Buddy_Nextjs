@@ -1,4 +1,3 @@
-
 'use server';
 
 import {z} from 'zod';
@@ -25,6 +24,17 @@ const baseSchema = z.object({
       'Job description is too short. Please provide a more detailed job description.'
     ),
 });
+
+const qaSchema = baseSchema.extend({
+    topic: z.enum([
+    "General",
+    "Technical",
+    "Work Experience",
+    "Projects",
+    "Career Goals",
+    "Education",
+  ]),
+})
 
 export async function extractText(
   formData: FormData
@@ -90,17 +100,25 @@ export async function runQAGenerationAction(input: {
   userId: string;
   resumeText: string;
   jobDescription: string;
+  topic: "General" | "Technical" | "Work Experience" | "Projects" | "Career Goals" | "Education";
 }) {
-  const validatedFields = baseSchema.safeParse(input);
+  const validatedFields = qaSchema.safeParse(input);
   if (!validatedFields.success) {
     throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
   }
-  const qa = await generateResumeQA({
+  const qaResult = await generateResumeQA({
     resumeText: validatedFields.data.resumeText,
-    topic: 'General',
+    topic: validatedFields.data.topic,
   });
-  await saveToDb(input.userId, { qa, resumeText: input.resumeText, jobDescription: input.jobDescription });
-  return qa;
+
+  const dataToSave = {
+      [`qa.${input.topic}`]: qaResult,
+      resumeText: input.resumeText,
+      jobDescription: input.jobDescription,
+  };
+
+  await saveToDb(input.userId, dataToSave);
+  return qaResult;
 }
 
 export async function runInterviewGenerationAction(input: {

@@ -1,9 +1,9 @@
-
 'use client';
 
 import { createContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from 'react';
 import { getUserData } from '@/lib/local-storage';
 import { useAuth } from './auth-context';
+import type { AnalysisResult, QATopic, GenerateResumeQAOutput } from '@/lib/types';
 
 interface ResumeContextType {
   resumeText: string;
@@ -15,13 +15,13 @@ interface ResumeContextType {
   analysis: any;
   improvements: any;
   interview: any;
-  qa: any;
+  qa: Record<QATopic, GenerateResumeQAOutput | null> | null;
   storedResumeText?: string;
   storedJobDescription?: string;
   setAnalysis: (data: any) => void;
   setImprovements: (data: any) => void;
   setInterview: (data: any) => void;
-  setQa: (data: any) => void;
+  setQa: (data: Record<QATopic, GenerateResumeQAOutput | null> | null) => void;
   loadDataFromCache: () => void;
 }
 
@@ -51,9 +51,8 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
   const [analysis, setAnalysis] = useState(null);
   const [improvements, setImprovements] = useState(null);
   const [interview, setInterview] = useState(null);
-  const [qa, setQa] = useState(null);
+  const [qa, setQa] = useState<Record<QATopic, GenerateResumeQAOutput | null> | null>(null);
   
-  // These represent the state of the text when the last analysis was run
   const [storedResumeText, setStoredResumeText] = useState<string | undefined>('');
   const [storedJobDescription, setStoredJobDescription] = useState<string | undefined>('');
 
@@ -68,8 +67,6 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
         setInterview(data.interview || null);
         setQa(data.qa || null);
 
-        // This is key: we set the "stored" text to what's in the cache.
-        // This is used to compare against for the "regenerate" button logic.
         setStoredResumeText(data.resumeText);
         setStoredJobDescription(data.jobDescription);
       }
@@ -79,11 +76,9 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     loadDataFromCache();
 
-    // Listen for the custom event fired from AuthProvider
     const handleDataLoad = () => loadDataFromCache();
     window.addEventListener('user-data-loaded', handleDataLoad);
     
-    // Listen for storage changes from other tabs
     const handleStorageChange = (e: StorageEvent) => {
       if (user && e.key === `resume_buddy_user_${user.uid}`) {
         loadDataFromCache();
