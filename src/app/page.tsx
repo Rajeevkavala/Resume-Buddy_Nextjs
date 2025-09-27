@@ -82,16 +82,26 @@ export default function Home() {
       return;
     }
 
-    const dataToSave = { resumeText, jobDescription };
+    // When saving new text, clear all previous AI results
+    const dataToSave = { 
+      resumeText, 
+      jobDescription,
+      analysis: null,
+      qa: null,
+      interview: null,
+      improvements: null,
+    };
 
     const promise = saveData(user.uid, dataToSave).then(() => {
-      // Also update local storage
+      // Also update local storage, which will clear the old results
       saveUserData(user.uid, dataToSave);
+      // Reload context from the now-updated local storage
+      loadDataFromCache();
     });
 
     toast.promise(promise, {
       loading: 'Saving your data...',
-      success: 'Data saved successfully!',
+      success: 'Data saved successfully! Previous AI analyses have been cleared.',
       error: 'Failed to save data.',
     });
   };
@@ -109,6 +119,8 @@ export default function Home() {
       setResumeText('');
       setJobDescription('');
       setResumeFile(null);
+      // Reload context to clear state across the app
+      loadDataFromCache();
     });
 
     toast.promise(promise, {
