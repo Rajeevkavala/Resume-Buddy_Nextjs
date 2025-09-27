@@ -8,10 +8,11 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
-import {Progress} from '@/components/ui/progress';
 import {Button} from './ui/button';
 import {Loader2, CheckCircle, XCircle, RefreshCw} from 'lucide-react';
 import { Separator } from './ui/separator';
+import { Bar, BarChart, LabelList, RadialBar, RadialBarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from './ui/chart';
 
 interface AnalysisTabProps {
   analysis: AnalyzeResumeContentOutput | null;
@@ -52,6 +53,24 @@ export default function AnalysisTab({
     );
   }
 
+  const atsChartData = [{ name: 'ATS', value: analysis.atsScore, fill: 'hsl(var(--primary))' }];
+  const coverageChartData = [{ name: 'Coverage', value: analysis.contentCoveragePercentage }];
+  const keywordChartData = [
+    { name: 'Present', value: analysis.keywordAnalysis.presentKeywords.length, fill: 'var(--color-present)' },
+    { name: 'Missing', value: analysis.keywordAnalysis.missingKeywords.length, fill: 'var(--color-missing)' },
+  ];
+  const chartConfig = {
+      present: {
+        label: "Present",
+        color: "hsl(var(--chart-2))",
+      },
+      missing: {
+        label: "Missing",
+        color: "hsl(var(--destructive))",
+      },
+  };
+
+
   return (
     <div className="space-y-6">
       <Card>
@@ -89,30 +108,28 @@ export default function AnalysisTab({
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center space-y-2 pt-4">
-            <div className="relative h-32 w-32">
-              <svg className="h-full w-full" viewBox="0 0 36 36">
-                <path
-                  className="stroke-current text-gray-200 dark:text-gray-700"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  fill="none"
-                  strokeWidth="3"
-                />
-                <path
-                  className="stroke-current text-primary transition-all duration-500"
-                  strokeDasharray={`${analysis.atsScore}, 100`}
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  fill="none"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-3xl font-bold font-headline">
-                  {analysis.atsScore}
-                </span>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">out of 100</p>
+            <ChartContainer config={{}} className="mx-auto aspect-square h-[200px]">
+              <RadialBarChart
+                  data={atsChartData}
+                  startAngle={-270}
+                  endAngle={90}
+                  innerRadius={80}
+                  outerRadius={100}
+                  barSize={20}
+              >
+                  <RadialBar
+                      dataKey="value"
+                      background
+                      cornerRadius={10}
+                  />
+                  <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-4xl font-bold font-headline">
+                      {analysis.atsScore}
+                  </text>
+                  <text x="50%" y="65%" textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground text-sm">
+                      out of 100
+                  </text>
+              </RadialBarChart>
+            </ChartContainer>
           </CardContent>
         </Card>
 
@@ -124,19 +141,78 @@ export default function AnalysisTab({
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center space-y-4 pt-4">
-            <p className="text-3xl font-bold font-headline">
-              {analysis.contentCoveragePercentage}%
-            </p>
-            <Progress
-              value={analysis.contentCoveragePercentage}
-              className="w-full"
-            />
-            <p className="text-sm text-muted-foreground text-center">
-              of job description keywords found.
-            </p>
+            <ChartContainer config={{}} className="w-full h-[200px]">
+              <BarChart accessibilityLayer data={coverageChartData} layout="vertical" margin={{left:10, right: 50}}>
+                  <XAxis type="number" hide domain={[0, 100]}/>
+                  <YAxis type="category" dataKey="name" hide/>
+                  <Bar dataKey="value" fill="hsl(var(--primary))" radius={5} barSize={30}>
+                      <LabelList dataKey="value" position="right" formatter={(value: number) => `${value}%`} className="fill-foreground font-bold font-headline text-2xl" />
+                  </Bar>
+              </BarChart>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Keyword and Skill Analysis</CardTitle>
+          <CardDescription>
+            Keywords and skills from the job description compared to your resume.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            <div>
+                 <ChartContainer config={chartConfig} className="w-full h-[150px]">
+                    <BarChart accessibilityLayer data={keywordChartData} layout="vertical" margin={{ left: 10, right: 10 }}>
+                        <XAxis type="number" hide />
+                        <YAxis type="category" dataKey="name" hide />
+                        <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                        <Bar dataKey="value" radius={5} barSize={25}>
+                            <LabelList dataKey="value" position="right" offset={8} className="fill-foreground font-semibold" />
+                             {keywordChartData.map((entry, index) => (
+                                <rect key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                 </ChartContainer>
+            </div>
+            <div className="space-y-4">
+                <div>
+                    <h4 className="font-semibold mb-3 flex items-center"><CheckCircle className="mr-2 h-5 w-5 text-green-500" /> Present Keywords</h4>
+                    {analysis.keywordAnalysis.presentKeywords.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                        {analysis.keywordAnalysis.presentKeywords.map((skill, index) => (
+                        <Badge key={index} variant="secondary">
+                            {skill}
+                        </Badge>
+                        ))}
+                    </div>
+                    ) : (
+                    <p className="text-sm text-muted-foreground">
+                        No matching keywords found.
+                    </p>
+                    )}
+                </div>
+                <div>
+                    <h4 className="font-semibold mb-3 flex items-center"><XCircle className="mr-2 h-5 w-5 text-red-500" /> Missing Keywords & Skills</h4>
+                    {analysis.keywordAnalysis.missingKeywords.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                       {analysis.keywordAnalysis.missingKeywords.map((skill, index) => (
+                        <Badge key={index} variant="destructive">
+                            {skill}
+                        </Badge>
+                        ))}
+                    </div>
+                    ) : (
+                    <p className="text-sm text-muted-foreground">
+                        No skill gaps found. Great job!
+                    </p>
+                    )}
+                </div>
+            </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -158,48 +234,6 @@ export default function AnalysisTab({
         </CardContent>
       </Card>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Keyword and Skill Analysis</CardTitle>
-          <CardDescription>
-            Keywords and skills from the job description compared to your resume.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h4 className="font-semibold mb-3 flex items-center"><CheckCircle className="mr-2 h-5 w-5 text-green-500" /> Present Keywords</h4>
-            {analysis.keywordAnalysis.presentKeywords.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {analysis.keywordAnalysis.presentKeywords.map((skill, index) => (
-                  <Badge key={index} variant="secondary">
-                    {skill}
-                  </Badge>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No matching keywords found.
-              </p>
-            )}
-          </div>
-          <div>
-            <h4 className="font-semibold mb-3 flex items-center"><XCircle className="mr-2 h-5 w-5 text-red-500" /> Missing Keywords & Skills</h4>
-            {analysis.skillGaps.length > 0 || analysis.keywordAnalysis.missingKeywords.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {[...new Set([...analysis.skillGaps, ...analysis.keywordAnalysis.missingKeywords])].map((skill, index) => (
-                  <Badge key={index} variant="destructive">
-                    {skill}
-                  </Badge>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No skill gaps found. Great job!
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
