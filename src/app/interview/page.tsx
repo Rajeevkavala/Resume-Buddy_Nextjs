@@ -1,47 +1,22 @@
 
 'use client';
 
-import { useState, useContext, useEffect } from 'react';
+import { useState, useContext } from 'react';
 import { runInterviewGenerationAction } from '@/app/actions';
 import { ResumeContext } from '@/context/resume-context';
 import { toast } from 'sonner';
-import type { GenerateInterviewQuestionsOutput } from '@/ai/flows/generate-interview-questions';
 import InterviewTab from '@/components/interview-tab';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/auth-context';
-import { loadData } from '@/lib/firestore';
 import { Loader2 } from 'lucide-react';
+import { saveUserData } from '@/lib/local-storage';
 
 export default function InterviewPage() {
-  const { resumeText, jobDescription } = useContext(ResumeContext);
+  const { resumeText, jobDescription, interview, setInterview, storedResumeText, storedJobDescription, loadDataFromCache } = useContext(ResumeContext);
   const { user, loading: authLoading } = useAuth();
-  const [interview, setInterview] = useState<GenerateInterviewQuestionsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isDataLoading, setIsDataLoading] = useState(true);
-  const [storedResumeText, setStoredResumeText] = useState<string | undefined>('');
-  const [storedJobDescription, setStoredJobDescription] = useState<string | undefined>('');
 
   const hasDataChanged = (resumeText && resumeText !== storedResumeText) || (jobDescription && jobDescription !== storedJobDescription);
-
-  useEffect(() => {
-    if (user) {
-      const fetchData = async () => {
-        setIsDataLoading(true);
-        const data = await loadData(user.uid);
-        if (data) {
-          if (data.interview) {
-            setInterview(data.interview);
-          }
-          setStoredResumeText(data.resumeText);
-          setStoredJobDescription(data.jobDescription);
-        }
-        setIsDataLoading(false);
-      };
-      fetchData();
-    } else if (!authLoading) {
-      setIsDataLoading(false);
-    }
-  }, [user, authLoading]);
 
   const handleGeneration = async () => {
     if (!user) {
@@ -57,26 +32,26 @@ export default function InterviewPage() {
     
     setIsLoading(true);
     setInterview(null); // Clear previous interview data
-    const promise = runInterviewGenerationAction({ userId: user.uid, resumeText, jobDescription });
+    const promise = runInterviewGenerationAction({ userId: user.uid, resumeText, jobDescription }).then((result) => {
+        setInterview(result);
+        saveUserData(user.uid, {
+            interview: result,
+            resumeText,
+            jobDescription,
+        });
+        loadDataFromCache();
+        return result;
+    });
 
     toast.promise(promise, {
       loading: 'Generating interview questions...',
-      success: (result) => {
-        setInterview(result);
-        setStoredResumeText(resumeText);
-        setStoredJobDescription(jobDescription);
-        return 'Interview prep complete!';
-      },
-      error: (error) => {
-        return error.message || 'An unexpected error occurred.';
-      },
-      finally: () => {
-        setIsLoading(false);
-      }
+      success: () => 'Interview prep complete!',
+      error: (error) => error.message || 'An unexpected error occurred.',
+      finally: () => setIsLoading(false)
     });
   };
   
-  if (authLoading || isDataLoading) {
+  if (authLoading) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-80px)]">
         <Loader2 className="h-8 w-8 animate-spin" />

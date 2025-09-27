@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useContext, useEffect } from 'react';
+import { useState, useContext } from 'react';
 import {
   runImprovementsGenerationAction,
   exportDocx,
@@ -9,44 +9,19 @@ import {
 } from '@/app/actions';
 import { ResumeContext } from '@/context/resume-context';
 import { toast } from 'sonner';
-import type { SuggestResumeImprovementsOutput } from '@/ai/flows/suggest-resume-improvements';
 import ImprovementsTab from '@/components/improvements-tab';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { saveAs } from 'file-saver';
 import { useAuth } from '@/context/auth-context';
-import { loadData } from '@/lib/firestore';
 import { Loader2 } from 'lucide-react';
+import { saveUserData } from '@/lib/local-storage';
 
 export default function ImprovementPage() {
-  const { resumeText, jobDescription } = useContext(ResumeContext);
+  const { resumeText, jobDescription, improvements, setImprovements, storedResumeText, storedJobDescription, loadDataFromCache } = useContext(ResumeContext);
   const { user, loading: authLoading } = useAuth();
-  const [improvements, setImprovements] = useState<SuggestResumeImprovementsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isDataLoading, setIsDataLoading] = useState(true);
-  const [storedResumeText, setStoredResumeText] = useState<string | undefined>('');
-  const [storedJobDescription, setStoredJobDescription] = useState<string | undefined>('');
 
   const hasDataChanged = (resumeText && resumeText !== storedResumeText) || (jobDescription && jobDescription !== storedJobDescription);
-
-  useEffect(() => {
-    if (user) {
-      const fetchData = async () => {
-        setIsDataLoading(true);
-        const data = await loadData(user.uid);
-        if (data) {
-          if (data.improvements) {
-            setImprovements(data.improvements);
-          }
-          setStoredResumeText(data.resumeText);
-          setStoredJobDescription(data.jobDescription);
-        }
-        setIsDataLoading(false);
-      };
-      fetchData();
-    } else if (!authLoading) {
-      setIsDataLoading(false);
-    }
-  }, [user, authLoading]);
 
   const handleGeneration = async () => {
     if (!user) {
@@ -62,22 +37,22 @@ export default function ImprovementPage() {
     
     setIsLoading(true);
     setImprovements(null); // Clear previous improvements
-    const promise = runImprovementsGenerationAction({ userId: user.uid, resumeText, jobDescription });
+    const promise = runImprovementsGenerationAction({ userId: user.uid, resumeText, jobDescription }).then((result) => {
+        setImprovements(result);
+        saveUserData(user.uid, {
+            improvements: result,
+            resumeText,
+            jobDescription,
+        });
+        loadDataFromCache();
+        return result;
+    });
 
     toast.promise(promise, {
       loading: 'Generating improvements...',
-      success: (result) => {
-        setImprovements(result);
-        setStoredResumeText(resumeText);
-        setStoredJobDescription(jobDescription);
-        return 'Improvements generated successfully!';
-      },
-      error: (error) => {
-        return error.message || 'An unexpected error occurred.';
-      },
-      finally: () => {
-        setIsLoading(false);
-      }
+      success: () => 'Improvements generated successfully!',
+      error: (error) => error.message || 'An unexpected error occurred.',
+      finally: () => setIsLoading(false)
     });
   };
 
@@ -111,7 +86,7 @@ export default function ImprovementPage() {
     });
   };
 
-  if (authLoading || isDataLoading) {
+  if (authLoading) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-80px)]">
         <Loader2 className="h-8 w-8 animate-spin" />

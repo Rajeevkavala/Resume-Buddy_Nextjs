@@ -99,7 +99,7 @@ export async function runQAGenerationAction(input: {
     resumeText: validatedFields.data.resumeText,
     topic: 'General',
   });
-  await saveToDb(input.userId, { qa });
+  await saveToDb(input.userId, { qa, resumeText: input.resumeText, jobDescription: input.jobDescription });
   return qa;
 }
 
@@ -116,7 +116,7 @@ export async function runInterviewGenerationAction(input: {
     ...validatedFields.data,
     numQuestions: 5,
   });
-  await saveToDb(input.userId, { interview });
+  await saveToDb(input.userId, { interview, resumeText: input.resumeText, jobDescription: input.jobDescription });
   return interview;
 }
 
@@ -130,7 +130,7 @@ export async function runImprovementsGenerationAction(input: {
     throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
   }
   const improvements = await suggestResumeImprovements(validatedFields.data);
-  await saveToDb(input.userId, { improvements });
+  await saveToDb(input.userId, { improvements, resumeText: input.resumeText, jobDescription: input.jobDescription });
   return improvements;
 }
 

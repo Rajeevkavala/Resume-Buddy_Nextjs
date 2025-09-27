@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useContext, useState, useEffect, useCallback } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { Loader2, Save, Trash2 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
-import { loadData } from '@/lib/firestore';
+import { saveUserData, clearUserData as clearLocalData } from '@/lib/local-storage';
 
 export default function Home() {
   const {
@@ -29,6 +29,7 @@ export default function Home() {
     setJobDescription,
     resumeFile,
     setResumeFile,
+    loadDataFromCache,
   } = useContext(ResumeContext);
   const [isLoading, setIsLoading] = useState(false);
   const { user, loading } = useAuth();
@@ -39,22 +40,7 @@ export default function Home() {
       router.push('/login');
     }
   }, [user, loading, router]);
-
-  useEffect(() => {
-    if (user) {
-      const fetchData = async () => {
-        setIsLoading(true);
-        const data = await loadData(user.uid);
-        if (data) {
-          if (data.resumeText) setResumeText(data.resumeText);
-          if (data.jobDescription) setJobDescription(data.jobDescription);
-        }
-        setIsLoading(false);
-      };
-      fetchData();
-    }
-  }, [user, setResumeText, setJobDescription]);
-
+  
   const handleProcessResume = async () => {
     if (!resumeFile) {
       toast.error('Please upload a resume file first.');
@@ -73,7 +59,6 @@ export default function Home() {
       setResumeText(result.text || '');
       return 'Resume processed successfully! Click "Save Data" to persist it.';
     });
-
 
     toast.promise(promise, {
       loading: 'Extracting text from your resume...',
@@ -97,7 +82,13 @@ export default function Home() {
       return;
     }
 
-    const promise = saveData(user.uid, { resumeText, jobDescription });
+    const dataToSave = { resumeText, jobDescription };
+
+    const promise = saveData(user.uid, dataToSave).then(() => {
+      // Also update local storage
+      saveUserData(user.uid, dataToSave);
+    });
+
     toast.promise(promise, {
       loading: 'Saving your data...',
       success: 'Data saved successfully!',
@@ -111,15 +102,18 @@ export default function Home() {
       return;
     }
 
-    const promise = clearData(user.uid);
+    const promise = clearData(user.uid).then(() => {
+      // Also clear local data
+      clearLocalData(user.uid);
+      // And clear local component state
+      setResumeText('');
+      setJobDescription('');
+      setResumeFile(null);
+    });
+
     toast.promise(promise, {
       loading: 'Clearing your data...',
-      success: () => {
-        setResumeText('');
-        setJobDescription('');
-        setResumeFile(null);
-        return 'Data cleared successfully!';
-      },
+      success: () => 'Data cleared successfully!',
       error: 'Failed to clear data.',
     });
   };

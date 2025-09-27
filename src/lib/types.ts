@@ -7,8 +7,8 @@ import type {SuggestResumeImprovementsOutput} from '@/ai/flows/suggest-resume-im
 export type AnalysisResult = {
   resumeText?: string;
   jobDescription?: string;
-  analysis: AnalyzeResumeContentOutput | null;
-  qa: GenerateResumeQAOutput | null;
-  interview: GenerateInterviewQuestionsOutput | null;
-  improvements: SuggestResumeImprovementsOutput | null;
+  analysis?: AnalyzeResumeContentOutput | null;
+  qa?: GenerateResumeQAOutput | null;
+  interview?: GenerateInterviewQuestionsOutput | null;
+  improvements?: SuggestResumeImprovementsOutput | null;
 };

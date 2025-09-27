@@ -1,48 +1,22 @@
 
 'use client';
 
-import { useState, useContext, useEffect } from 'react';
+import { useState, useContext } from 'react';
 import { runQAGenerationAction } from '@/app/actions';
 import { ResumeContext } from '@/context/resume-context';
 import { toast } from 'sonner';
-import type { GenerateResumeQAOutput } from '@/ai/flows/generate-resume-qa';
 import QATab from '@/components/qa-tab';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/auth-context';
-import { loadData } from '@/lib/firestore';
 import { Loader2 } from 'lucide-react';
-
+import { saveUserData } from '@/lib/local-storage';
 
 export default function QAPage() {
-  const { resumeText, jobDescription } = useContext(ResumeContext);
+  const { resumeText, jobDescription, qa, setQa, storedResumeText, storedJobDescription, loadDataFromCache } = useContext(ResumeContext);
   const { user, loading: authLoading } = useAuth();
-  const [qa, setQa] = useState<GenerateResumeQAOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isDataLoading, setIsDataLoading] = useState(true);
-  const [storedResumeText, setStoredResumeText] = useState<string | undefined>('');
-  const [storedJobDescription, setStoredJobDescription] = useState<string | undefined>('');
 
   const hasDataChanged = (resumeText && resumeText !== storedResumeText) || (jobDescription && jobDescription !== storedJobDescription);
-
-  useEffect(() => {
-    if (user) {
-      const fetchData = async () => {
-        setIsDataLoading(true);
-        const data = await loadData(user.uid);
-        if (data) {
-          if (data.qa) {
-            setQa(data.qa);
-          }
-          setStoredResumeText(data.resumeText);
-          setStoredJobDescription(data.jobDescription);
-        }
-        setIsDataLoading(false);
-      };
-      fetchData();
-    } else if (!authLoading) {
-      setIsDataLoading(false);
-    }
-  }, [user, authLoading]);
 
   const handleGeneration = async () => {
     if (!user) {
@@ -58,26 +32,26 @@ export default function QAPage() {
 
     setIsLoading(true);
     setQa(null); // Clear previous Q&A data
-    const promise = runQAGenerationAction({ userId: user.uid, resumeText, jobDescription });
+    const promise = runQAGenerationAction({ userId: user.uid, resumeText, jobDescription }).then((result) => {
+        setQa(result);
+        saveUserData(user.uid, {
+            qa: result,
+            resumeText,
+            jobDescription,
+        });
+        loadDataFromCache();
+        return result;
+    });
 
     toast.promise(promise, {
       loading: 'Generating Q&A...',
-      success: (result) => {
-        setQa(result);
-        setStoredResumeText(resumeText);
-        setStoredJobDescription(jobDescription);
-        return 'Q&A pairs generated successfully!';
-      },
-      error: (error) => {
-        return error.message || 'An unexpected error occurred.';
-      },
-      finally: () => {
-        setIsLoading(false);
-      }
+      success: () => 'Q&A pairs generated successfully!',
+      error: (error) => error.message || 'An unexpected error occurred.',
+      finally: () => setIsLoading(false)
     });
   };
 
-  if (authLoading || isDataLoading) {
+  if (authLoading) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-80px)]">
         <Loader2 className="h-8 w-8 animate-spin" />
