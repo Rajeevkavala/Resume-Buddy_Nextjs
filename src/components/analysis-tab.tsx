@@ -11,7 +11,7 @@ import {Badge} from '@/components/ui/badge';
 import {Button} from './ui/button';
 import {Loader2, RefreshCw, CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
 import { Separator } from './ui/separator';
-import { PieChart, Pie, Label, Tooltip } from 'recharts';
+import { PieChart, Pie, Label } from 'recharts';
 import { Progress } from './ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from './ui/chart';
@@ -295,7 +295,7 @@ export default function AnalysisTab({
                                         index,
                                     }) => {
                                         const RADIAN = Math.PI / 180;
-                                        const radius = 15 + innerRadius + (outerRadius - innerRadius);
+                                        const radius = 25 + innerRadius + (outerRadius - innerRadius);
                                         const x = cy + radius * Math.cos(-midAngle * RADIAN);
                                         const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
@@ -449,5 +449,6 @@ export default function AnalysisTab({
     </div>
   );
 }
+
 
 
