@@ -80,23 +80,7 @@ const generateResumeQAFlow = ai.defineFlow(
     outputSchema: GenerateResumeQAOutputSchema,
   },
   async input => {
-    // Manually set the length for the output schema based on the input
-    const dynamicOutputSchema = z.object({
-        qaPairs: z
-            .array(QAPairSchema)
-            .length(input.numQuestions)
-            .describe(`An array of ${input.numQuestions} intelligent question and answer pairs relevant to the resume and topic.`),
-    });
-    
-    const {output} = await ai.generate({
-        prompt: prompt.prompt,
-        model: prompt.model,
-        output: {
-            schema: dynamicOutputSchema,
-        },
-        context: input,
-    });
-
+    const {output} = await prompt(input);
     return output!;
   }
 );
