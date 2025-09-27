@@ -32,6 +32,7 @@ export default function AnalysisPage() {
           if (data.analysis) {
             setAnalysis(data.analysis);
           }
+          // After loading, set the stored text to what's in the DB
           setStoredResumeText(data.resumeText);
           setStoredJobDescription(data.jobDescription);
         }
@@ -64,6 +65,7 @@ export default function AnalysisPage() {
       loading: 'Analyzing your resume...',
       success: (result) => {
         setAnalysis(result);
+        // On success, update the stored texts to match the new context
         setStoredResumeText(resumeText);
         setStoredJobDescription(jobDescription);
         return 'Analysis Complete!';
