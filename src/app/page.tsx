@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useContext, useState, useEffect } from 'react';
+import { useContext, useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -14,11 +14,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { ResumeContext } from '@/context/resume-context';
 import FileUploader from '@/components/file-uploader';
 import { Button } from '@/components/ui/button';
-import { extractText } from './actions';
+import { extractText, saveData } from './actions';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
+import { loadData } from '@/lib/firestore';
+import { useDebounce } from '@/hooks/use-debounce';
 
 export default function Home() {
   const {
@@ -33,16 +35,50 @@ export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
+  const debouncedJobDescription = useDebounce(jobDescription, 500);
+
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
     }
   }, [user, loading, router]);
 
+  useEffect(() => {
+    if (user) {
+      const fetchData = async () => {
+        const data = await loadData(user.uid);
+        if (data) {
+          if (data.resumeText) setResumeText(data.resumeText);
+          if (data.jobDescription) setJobDescription(data.jobDescription);
+        }
+      };
+      fetchData();
+    }
+  }, [user, setResumeText, setJobDescription]);
+
+  const handleSaveData = useCallback(async (data: { resumeText?: string; jobDescription?: string }) => {
+    if (user) {
+      try {
+        await saveData(user.uid, data);
+      } catch (error) {
+        toast.error('Failed to save data.');
+      }
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (debouncedJobDescription && user) {
+      handleSaveData({ jobDescription: debouncedJobDescription });
+    }
+  }, [debouncedJobDescription, user, handleSaveData]);
 
   const handleProcessResume = async () => {
     if (!resumeFile) {
       toast.error('Please upload a resume file first.');
+      return;
+    }
+    if (!user) {
+      toast.error('You must be logged in.');
       return;
     }
 
@@ -51,17 +87,20 @@ export default function Home() {
 
     setIsLoading(true);
 
-    const promise = extractText(formData);
+    const promise = extractText(formData).then(async result => {
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      const newResumeText = result.text || '';
+      setResumeText(newResumeText);
+      await handleSaveData({ resumeText: newResumeText });
+      return result;
+    });
+
 
     toast.promise(promise, {
       loading: 'Extracting text from your resume...',
-      success: result => {
-        if (result.error) {
-          throw new Error(result.error);
-        }
-        setResumeText(result.text || '');
-        return 'Resume processed successfully!';
-      },
+      success: 'Resume processed and saved successfully!',
       error: err => {
         return err.message || 'An unexpected error occurred.';
       },
@@ -86,7 +125,7 @@ export default function Home() {
           <CardTitle className="font-headline text-2xl">Dashboard</CardTitle>
           <CardDescription>
             Upload your resume and paste the target job description below to get
-            started.
+            started. Your work is saved automatically.
           </CardDescription>
         </CardHeader>
         <CardContent>

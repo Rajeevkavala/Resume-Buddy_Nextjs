@@ -10,7 +10,8 @@ import {Packer, Document, Paragraph, TextRun} from 'docx';
 import PDFDocument from 'pdfkit';
 import mammoth from 'mammoth';
 import pdf from 'pdf-parse-fork';
-import { saveData } from '@/lib/firestore';
+import { saveData as saveToDb } from '@/lib/firestore';
+import type { AnalysisResult } from '@/lib/types';
 
 const baseSchema = z.object({
   userId: z.string().min(1, 'User ID is required.'),
@@ -60,6 +61,13 @@ export async function extractText(
   }
 }
 
+export async function saveData(
+  userId: string,
+  data: Partial<AnalysisResult>
+) {
+  return saveToDb(userId, data);
+}
+
 export async function runAnalysisAction(input: {
   userId: string;
   resumeText: string;
@@ -70,7 +78,7 @@ export async function runAnalysisAction(input: {
     throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
   }
   const analysis = await analyzeResumeContent(validatedFields.data);
-  await saveData(input.userId, { analysis });
+  await saveToDb(input.userId, { analysis });
   return analysis;
 }
 
@@ -87,7 +95,7 @@ export async function runQAGenerationAction(input: {
     resumeText: validatedFields.data.resumeText,
     topic: 'General',
   });
-  await saveData(input.userId, { qa });
+  await saveToDb(input.userId, { qa });
   return qa;
 }
 
@@ -104,7 +112,7 @@ export async function runInterviewGenerationAction(input: {
     ...validatedFields.data,
     numQuestions: 5,
   });
-  await saveData(input.userId, { interview });
+  await saveToDb(input.userId, { interview });
   return interview;
 }
 
@@ -118,7 +126,7 @@ export async function runImprovementsGenerationAction(input: {
     throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
   }
   const improvements = await suggestResumeImprovements(validatedFields.data);
-  await saveData(input.userId, { improvements });
+  await saveToDb(input.userId, { improvements });
   return improvements;
 }
 
