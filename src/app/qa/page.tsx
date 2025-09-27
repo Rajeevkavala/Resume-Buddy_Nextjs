@@ -22,7 +22,7 @@ export default function QAPage() {
   const [storedResumeText, setStoredResumeText] = useState<string | undefined>('');
   const [storedJobDescription, setStoredJobDescription] = useState<string | undefined>('');
 
-  const hasDataChanged = resumeText !== storedResumeText || jobDescription !== storedJobDescription;
+  const hasDataChanged = (resumeText && resumeText !== storedResumeText) || (jobDescription && jobDescription !== storedJobDescription);
 
   useEffect(() => {
     if (user) {
