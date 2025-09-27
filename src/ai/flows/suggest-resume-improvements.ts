@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -17,7 +18,7 @@ const SuggestResumeImprovementsInputSchema = z.object({
     .describe('The text content of the resume to be improved.'),
   jobDescription: z
     .string()
-al()
+    .optional()
     .describe('The job description for tailoring the resume improvements.'),
 });
 export type SuggestResumeImprovementsInput = z.infer<
