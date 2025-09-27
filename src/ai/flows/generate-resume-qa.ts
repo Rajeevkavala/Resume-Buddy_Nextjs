@@ -93,8 +93,9 @@ const generateResumeQAFlow = ai.defineFlow(
         model: prompt.model,
         output: {
             schema: dynamicOutputSchema,
-        }
-    }, input);
+        },
+        context: input,
+    });
 
     return output!;
   }
