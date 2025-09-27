@@ -164,14 +164,14 @@ export default function AnalysisTab({
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
             <div>
                  <ChartContainer config={chartConfig} className="w-full h-[150px]">
-                    <BarChart accessibilityLayer data={keywordChartData} layout="vertical" margin={{ left: 10, right: 10 }}>
+                    <BarChart accessibilityLayer data={keywordChartData} layout="vertical" margin={{ left: 10, right: 40 }}>
                         <XAxis type="number" hide />
                         <YAxis type="category" dataKey="name" hide />
                         <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                        <Bar dataKey="value" radius={5} barSize={25}>
+                        <Bar dataKey="value" layout="vertical" radius={5} barSize={25}>
                             <LabelList dataKey="value" position="right" offset={8} className="fill-foreground font-semibold" />
-                             {keywordChartData.map((entry, index) => (
-                                <rect key={`cell-${index}`} fill={entry.fill} />
+                             {keywordChartData.map((entry) => (
+                                <rect key={entry.name} fill={entry.fill} />
                             ))}
                         </Bar>
                     </BarChart>
@@ -237,3 +237,5 @@ export default function AnalysisTab({
     </div>
   );
 }
+
+    
