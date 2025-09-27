@@ -10,8 +10,10 @@ import {Packer, Document, Paragraph, TextRun} from 'docx';
 import PDFDocument from 'pdfkit';
 import mammoth from 'mammoth';
 import pdf from 'pdf-parse-fork';
+import { saveData } from '@/lib/firestore';
 
 const baseSchema = z.object({
+  userId: z.string().min(1, 'User ID is required.'),
   resumeText: z
     .string()
     .min(100, 'Resume text is too short. Please provide a more detailed resume.'),
@@ -59,6 +61,7 @@ export async function extractText(
 }
 
 export async function runAnalysisAction(input: {
+  userId: string;
   resumeText: string;
   jobDescription: string;
 }) {
@@ -66,10 +69,13 @@ export async function runAnalysisAction(input: {
   if (!validatedFields.success) {
     throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
   }
-  return await analyzeResumeContent(validatedFields.data);
+  const analysis = await analyzeResumeContent(validatedFields.data);
+  await saveData(input.userId, { analysis });
+  return analysis;
 }
 
 export async function runQAGenerationAction(input: {
+  userId: string;
   resumeText: string;
   jobDescription: string;
 }) {
@@ -77,13 +83,16 @@ export async function runQAGenerationAction(input: {
   if (!validatedFields.success) {
     throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
   }
-  return await generateResumeQA({
+  const qa = await generateResumeQA({
     resumeText: validatedFields.data.resumeText,
     topic: 'General',
   });
+  await saveData(input.userId, { qa });
+  return qa;
 }
 
 export async function runInterviewGenerationAction(input: {
+  userId: string;
   resumeText: string;
   jobDescription: string;
 }) {
@@ -91,13 +100,16 @@ export async function runInterviewGenerationAction(input: {
   if (!validatedFields.success) {
     throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
   }
-  return await generateInterviewQuestions({
+  const interview = await generateInterviewQuestions({
     ...validatedFields.data,
     numQuestions: 5,
   });
+  await saveData(input.userId, { interview });
+  return interview;
 }
 
 export async function runImprovementsGenerationAction(input: {
+  userId: string;
   resumeText: string;
   jobDescription: string;
 }) {
@@ -105,7 +117,9 @@ export async function runImprovementsGenerationAction(input: {
   if (!validatedFields.success) {
     throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
   }
-  return await suggestResumeImprovements(validatedFields.data);
+  const improvements = await suggestResumeImprovements(validatedFields.data);
+  await saveData(input.userId, { improvements });
+  return improvements;
 }
 
 export async function exportDocx(text: string) {

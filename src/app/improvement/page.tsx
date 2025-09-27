@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import {
   runImprovementsGenerationAction,
   exportDocx,
@@ -13,13 +13,38 @@ import type { SuggestResumeImprovementsOutput } from '@/ai/flows/suggest-resume-
 import ImprovementsTab from '@/components/improvements-tab';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { saveAs } from 'file-saver';
+import { useAuth } from '@/context/auth-context';
+import { loadData } from '@/lib/firestore';
+import { Loader2 } from 'lucide-react';
 
 export default function ImprovementPage() {
   const { resumeText, jobDescription } = useContext(ResumeContext);
+  const { user, loading: authLoading } = useAuth();
   const [improvements, setImprovements] = useState<SuggestResumeImprovementsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDataLoading, setIsDataLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      const fetchData = async () => {
+        setIsDataLoading(true);
+        const data = await loadData(user.uid);
+        if (data?.improvements) {
+          setImprovements(data.improvements);
+        }
+        setIsDataLoading(false);
+      };
+      fetchData();
+    } else if (!authLoading) {
+      setIsDataLoading(false);
+    }
+  }, [user, authLoading]);
 
   const handleGeneration = async () => {
+    if (!user) {
+      toast.error('Authentication Error', { description: 'You must be logged in to generate improvements.' });
+      return;
+    }
     if (!resumeText || !jobDescription) {
       toast.error('Missing Content', {
         description: 'Please provide both a resume and a job description on the dashboard.',
@@ -28,7 +53,7 @@ export default function ImprovementPage() {
     }
     
     setIsLoading(true);
-    const promise = runImprovementsGenerationAction({ resumeText, jobDescription });
+    const promise = runImprovementsGenerationAction({ userId: user.uid, resumeText, jobDescription });
 
     toast.promise(promise, {
       loading: 'Generating improvements...',
@@ -75,6 +100,13 @@ export default function ImprovementPage() {
     });
   };
 
+  if (authLoading || isDataLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-80px)]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <main className="flex-1 p-4 md:p-8">

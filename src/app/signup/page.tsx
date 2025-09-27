@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,11 +12,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Chrome } from 'lucide-react';
+import { useAuth } from '@/context/auth-context';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
+  const { signInWithGoogle } = useAuth();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,19 +30,6 @@ export default function SignupPage() {
         return 'Account created successfully!';
       },
       error: (err) => err.message || 'Failed to create account.',
-    });
-  };
-
-  const handleGoogleSignIn = async () => {
-    const provider = new GoogleAuthProvider();
-    const googlePromise = signInWithPopup(auth, provider);
-    toast.promise(googlePromise, {
-        loading: 'Signing in with Google...',
-        success: () => {
-            router.push('/');
-            return 'Signed in successfully!';
-        },
-        error: 'Failed to sign in with Google.'
     });
   };
 
@@ -79,7 +68,7 @@ export default function SignupPage() {
             <Button type="submit" className="w-full">
               Create an account
             </Button>
-            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} type="button">
+            <Button variant="outline" className="w-full" onClick={signInWithGoogle} type="button">
               <Chrome className="mr-2 h-4 w-4" />
               Sign up with Google
             </Button>

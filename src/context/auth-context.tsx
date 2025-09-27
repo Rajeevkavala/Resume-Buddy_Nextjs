@@ -2,20 +2,24 @@
 'use client';
 
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, User, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { createUserProfile } from '@/lib/firestore';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   logout: () => void;
+  signInWithGoogle: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   logout: () => {},
+  signInWithGoogle: () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -24,8 +28,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        await createUserProfile(user);
+        setUser(user);
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
 
@@ -41,8 +50,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    const googlePromise = signInWithPopup(auth, provider);
+    toast.promise(googlePromise, {
+        loading: 'Signing in with Google...',
+        success: (userCredential) => {
+            router.push('/');
+            return 'Signed in successfully!';
+        },
+        error: 'Failed to sign in with Google.'
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, logout }}>
+    <AuthContext.Provider value={{ user, loading, logout, signInWithGoogle }}>
       {children}
     </AuthContext.Provider>
   );
