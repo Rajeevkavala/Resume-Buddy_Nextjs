@@ -14,8 +14,7 @@ import {
 } from './ui/card';
 import {Button} from './ui/button';
 import {Loader2, FileQuestion, MessageSquareQuote, CheckSquare, Tags } from 'lucide-react';
-import { RadioGroup, RadioGroupItem } from './ui/radio-group';
-import { Label } from './ui/label';
+import { cn } from '@/lib/utils';
 
 interface QATabProps {
   qa: Record<QATopic, GenerateResumeQAOutput | null> | null;
@@ -27,18 +26,18 @@ interface QATabProps {
 }
 
 const topics: { id: QATopic, title: string, description: string }[] = [
-    { id: 'General', title: 'General Resume Questions', description: 'Career progression and professional overview' },
-    { id: 'Technical', title: 'Technical Skills', description: 'Technology expertise and implementation' },
+    { id: 'General', title: 'General', description: 'Career progression and professional overview' },
+    { id: 'Technical', title: 'Technical', description: 'Technology expertise and implementation' },
     { id: 'Work Experience', title: 'Work Experience', description: 'Detailed role and project discussions' },
-    { id: 'Projects', title: 'Project Experience', description: 'Specific project deep-dives and outcomes' },
+    { id: 'Projects', title: 'Projects', description: 'Specific project deep-dives and outcomes' },
     { id: 'Career Goals', title: 'Career Goals', description: 'Future aspirations and motivation' },
-    { id: 'Education', title: 'Education Background', description: 'Academic achievements and learning' },
+    { id: 'Education', title: 'Education', description: 'Academic achievements and learning' },
 ];
 
 export default function QATab({qa, onGenerate, isLoading, hasDataChanged, selectedTopic, setSelectedTopic}: QATabProps) {
   
-  const handleGenerateClick = () => {
-    onGenerate(selectedTopic);
+  const handleGenerateClick = (topic: QATopic) => {
+    onGenerate(topic);
   }
 
   const noDataGenerated = !qa || Object.values(qa).every(val => val === null);
@@ -53,27 +52,26 @@ export default function QATab({qa, onGenerate, isLoading, hasDataChanged, select
             : 'Choose a focus area to generate tailored questions and answers based on your resume.'}
         </p>
 
-        <Card className="w-full max-w-lg text-left mb-6">
-            <CardContent className="p-6">
-                <RadioGroup value={selectedTopic} onValueChange={(value) => setSelectedTopic(value as QATopic)}>
-                    {topics.map(topic => (
-                        <Label key={topic.id} className="flex items-start gap-4 rounded-md p-3 hover:bg-muted/50 cursor-pointer transition-colors">
-                             <RadioGroupItem value={topic.id} id={topic.id} className="mt-1" />
-                             <div className="grid gap-1.5">
-                                <span className="font-semibold">{topic.title}</span>
-                                <span className="text-sm text-muted-foreground">{topic.description}</span>
-                             </div>
-                        </Label>
-                    ))}
-                </RadioGroup>
-            </CardContent>
-        </Card>
+         <div className="w-full max-w-lg text-left mb-6">
+            <div className="flex flex-wrap items-center justify-center gap-2 rounded-lg border p-4">
+                {topics.map(topic => (
+                    <Button
+                        key={topic.id}
+                        variant={selectedTopic === topic.id ? 'default' : 'outline'}
+                        onClick={() => setSelectedTopic(topic.id)}
+                        className="flex-grow sm:flex-grow-0"
+                    >
+                        {topic.title}
+                    </Button>
+                ))}
+            </div>
+         </div>
         
-        <Button onClick={handleGenerateClick} disabled={isLoading} size="lg">
+        <Button onClick={() => handleGenerateClick(selectedTopic)} disabled={isLoading} size="lg">
           {isLoading ? (
-            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</>
+            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating for '{selectedTopic}'...</>
           ) : (
-             <><FileQuestion className="mr-2 h-4 w-4" /> Generate Q&A</>
+             <><FileQuestion className="mr-2 h-4 w-4" /> Generate Q&A for '{selectedTopic}'</>
           )}
         </Button>
       </div>
@@ -84,95 +82,91 @@ export default function QATab({qa, onGenerate, isLoading, hasDataChanged, select
     <div className="space-y-6">
       <Card>
         <CardHeader>
-            <CardTitle>Generate New or Update Q&A</CardTitle>
-            <CardDescription>
-                Select a topic to generate a new set of questions, or regenerate an existing set.
-            </CardDescription>
+          <CardTitle>Q&A Topic Selection</CardTitle>
+          <CardDescription>Select a topic to view or generate questions.</CardDescription>
         </CardHeader>
-        <CardContent className="flex justify-center">
-            <Button onClick={handleGenerateClick} disabled={isLoading} size="lg">
-                {isLoading ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</>
-                ) : (
-                    <><FileQuestion className="mr-2 h-4 w-4" /> 
-                    {qa?.[selectedTopic] ? 'Regenerate' : 'Generate'} Q&A for '{selectedTopic}'
-                    </>
-                )}
-            </Button>
+        <CardContent>
+          <div className="flex flex-wrap items-center gap-2">
+            {topics.map((topic) => (
+              <Button
+                key={topic.id}
+                variant={selectedTopic === topic.id ? 'default' : 'outline'}
+                onClick={() => setSelectedTopic(topic.id)}
+              >
+                {topic.title}
+              </Button>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Your Interview Prep Questions</CardTitle>
+          <CardTitle>Generated Questions for: {selectedTopic}</CardTitle>
           <CardDescription>
-            AI-generated practice questions and tailored answers for different topics.
+            {topics.find(t => t.id === selectedTopic)?.description}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Accordion type="multiple" className="w-full" defaultValue={topics.map(t => t.id)}>
-            {topics.map(topic => (
-              <AccordionItem value={topic.id} key={topic.id}>
-                <AccordionTrigger 
-                  className="text-left text-lg font-semibold hover:no-underline" 
-                  onClick={() => setSelectedTopic(topic.id)}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={cn("text-primary", selectedTopic === topic.id && "font-bold")}>{topic.title}</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pl-4 pr-4 space-y-6">
-                  {qa?.[topic.id] ? (
-                     <Accordion type="single" collapsible className="w-full">
-                        {qa[topic.id]!.qaPairs.map((pair, index) => (
-                           <AccordionItem value={`item-${topic.id}-${index}`} key={index}>
-                            <AccordionTrigger className="text-left text-base font-semibold hover:no-underline">
-                              <div className="flex items-start gap-3">
-                                <FileQuestion className="h-5 w-5 mt-1 shrink-0 text-primary" />
-                                <span>{pair.question}</span>
-                              </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="pl-8 space-y-6">
-                                <div className='space-y-2'>
-                                    <h4 className="font-semibold flex items-center gap-2"><MessageSquareQuote className='h-4 w-4 text-muted-foreground'/> Your Tailored Answer</h4>
-                                    <p className="text-muted-foreground whitespace-pre-wrap text-sm">
-                                        {pair.answer}
-                                    </p>
-                                </div>
-                                <div className='space-y-2'>
-                                    <h4 className="font-semibold flex items-center gap-2"><Tags className='h-4 w-4 text-muted-foreground'/> Related Resume Sections</h4>
-                                    <ul className="list-disc pl-5 text-muted-foreground text-sm space-y-1">
-                                      {pair.relatedSections.map((section, i) => <li key={i}>{section}</li>)}
-                                    </ul>
-                                </div>
-                                <div className='space-y-2'>
-                                    <h4 className="font-semibold flex items-center gap-2"><CheckSquare className='h-4 w-4 text-muted-foreground'/> Key Points to Emphasize</h4>
-                                    <ul className="list-disc pl-5 text-muted-foreground text-sm space-y-1">
-                                      {pair.keyPoints.map((point, i) => <li key={i}>{point}</li>)}
-                                    </ul>
-                                </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                        ))}
-                    </Accordion>
-                  ) : (
-                    <div className="text-center py-8">
-                       <p className="text-muted-foreground">No questions generated for this topic yet.</p>
-                        <Button variant="link" onClick={() => onGenerate(topic.id)} disabled={isLoading}>
-                           {isLoading && selectedTopic === topic.id ? 
-                           <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</> : 
-                           <>Generate Q&A for {topic.title}</>}
-                        </Button>
+          {isLoading && qa?.[selectedTopic] === null ? (
+            <div className="flex flex-col items-center justify-center text-center p-8 min-h-[200px]">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                <p className="text-muted-foreground">Generating questions for '{selectedTopic}'...</p>
+            </div>
+          ) : qa?.[selectedTopic] ? (
+            <Accordion type="single" collapsible className="w-full">
+              {qa[selectedTopic]!.qaPairs.map((pair, index) => (
+                <AccordionItem value={`item-${selectedTopic}-${index}`} key={index}>
+                  <AccordionTrigger className="text-left text-base font-semibold hover:no-underline">
+                    <div className="flex items-start gap-3">
+                      <FileQuestion className="h-5 w-5 mt-1 shrink-0 text-primary" />
+                      <span>{pair.question}</span>
                     </div>
-                  )}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+                  </AccordionTrigger>
+                  <AccordionContent className="pl-8 space-y-6">
+                    <div className='space-y-2'>
+                      <h4 className="font-semibold flex items-center gap-2"><MessageSquareQuote className='h-4 w-4 text-muted-foreground'/> Your Tailored Answer</h4>
+                      <p className="text-muted-foreground whitespace-pre-wrap text-sm">
+                        {pair.answer}
+                      </p>
+                    </div>
+                    <div className='space-y-2'>
+                      <h4 className="font-semibold flex items-center gap-2"><Tags className='h-4 w-4 text-muted-foreground'/> Related Resume Sections</h4>
+                      <ul className="list-disc pl-5 text-muted-foreground text-sm space-y-1">
+                        {pair.relatedSections.map((section, i) => <li key={i}>{section}</li>)}
+                      </ul>
+                    </div>
+                    <div className='space-y-2'>
+                      <h4 className="font-semibold flex items-center gap-2"><CheckSquare className='h-4 w-4 text-muted-foreground'/> Key Points to Emphasize</h4>
+                      <ul className="list-disc pl-5 text-muted-foreground text-sm space-y-1">
+                        {pair.keyPoints.map((point, i) => <li key={i}>{point}</li>)}
+                      </ul>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+              <div className="mt-6 flex justify-center">
+                  <Button onClick={() => handleGenerateClick(selectedTopic)} disabled={isLoading}>
+                      {isLoading ? (
+                          <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Regenerating...</>
+                      ) : (
+                          <>Regenerate for '{selectedTopic}'</>
+                      )}
+                  </Button>
+              </div>
+            </Accordion>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">No questions generated for this topic yet.</p>
+              <Button onClick={() => handleGenerateClick(selectedTopic)} disabled={isLoading}>
+                {isLoading ? 
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</> : 
+                  <>Generate Q&A for {selectedTopic}</>}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 }
-
-const cn = (...classes: (string | boolean | undefined)[]) => classes.filter(Boolean).join(' ');
