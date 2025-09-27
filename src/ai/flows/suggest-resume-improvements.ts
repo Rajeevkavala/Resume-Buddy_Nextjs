@@ -73,7 +73,11 @@ export async function suggestResumeImprovements(
 
 const prompt = ai.definePrompt({
   name: 'suggestResumeImprovementsPrompt',
-  input: {schema: SuggestResumeImprovementsInputSchema},
+  input: {
+    schema: SuggestResumeImprovementsInputSchema.extend({
+      stringifiedAnalysis: z.string().optional(),
+    }),
+  },
   output: {schema: SuggestResumeImprovementsOutputSchema},
   prompt: `You are an expert resume writer and career coach. Your task is to perform a comprehensive overhaul of the provided resume text. If a job description is provided, you must tailor the resume to that specific role.
 
@@ -89,10 +93,10 @@ const prompt = ai.definePrompt({
 \`\`\`
 {{/if}}
 
-{{#if previousAnalysis}}
+{{#if stringifiedAnalysis}}
 **Previous Analysis Data (for "before" scores):**
 \`\`\`json
-{{{JSON.stringify previousAnalysis}}}
+{{{stringifiedAnalysis}}}
 \`\`\`
 {{/if}}
 
@@ -146,7 +150,14 @@ const suggestResumeImprovementsFlow = ai.defineFlow(
     outputSchema: SuggestResumeImprovementsOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    let stringifiedAnalysis: string | undefined;
+    if (input.previousAnalysis) {
+      stringifiedAnalysis = JSON.stringify(input.previousAnalysis);
+    }
+    const {output} = await prompt({
+      ...input,
+      stringifiedAnalysis,
+    });
     return output!;
   }
 );
