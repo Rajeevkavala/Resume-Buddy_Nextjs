@@ -104,22 +104,22 @@ export default function ImprovementsTab({
                 <StatCard 
                     icon={<FileBadge className="h-4 w-4 text-muted-foreground" />}
                     title="ATS Score"
-                    before={impactForecast.atsScore.before}
-                    after={impactForecast.atsScore.after}
+                    before={impactForecast?.atsScore?.before ?? 0}
+                    after={impactForecast?.atsScore?.after ?? 0}
                     suffix="%"
                 />
                  <StatCard 
                     icon={<Target className="h-4 w-4 text-muted-foreground" />}
                     title="Skills Match"
-                    before={impactForecast.skillsMatch.before}
-                    after={impactForecast.skillsMatch.after}
+                    before={impactForecast?.skillsMatch?.before ?? 0}
+                    after={impactForecast?.skillsMatch?.after ?? 0}
                     suffix="%"
                 />
                  <StatCard 
                     icon={<Trophy className="h-4 w-4 text-muted-foreground" />}
                     title="Quantified Achievements"
-                    before={impactForecast.quantifiedAchievements.before}
-                    after={impactForecast.quantifiedAchievements.after}
+                    before={impactForecast?.quantifiedAchievements?.before ?? 0}
+                    after={impactForecast?.quantifiedAchievements?.after ?? 0}
                 />
             </CardContent>
         </Card>
