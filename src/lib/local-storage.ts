@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { AnalysisResult } from './types';
@@ -15,30 +16,39 @@ export const saveUserData = (userId: string, dataToSave: Partial<AnalysisResult>
     const key = getLocalStorageKey(userId);
     const existingData = getUserData(userId) || {};
     
+    // Create a new object to avoid mutating the existing one directly
     const newData = { ...existingData };
 
+    // Apply the new data
     Object.keys(dataToSave).forEach(keyPath => {
-        if (keyPath.includes('.')) {
-            const keys = keyPath.split('.');
-            let currentLevel = newData as any;
-            for (let i = 0; i < keys.length - 1; i++) {
-                currentLevel[keys[i]] = currentLevel[keys[i]] || {};
-                currentLevel = currentLevel[keys[i]];
-            }
-            currentLevel[keys[keys.length - 1]] = dataToSave[keyPath];
-        } else {
-            (newData as any)[keyPath] = dataToSave[keyPath];
+      const value = dataToSave[keyPath];
+
+      // If the value is null, we need to handle nested deletion correctly.
+      if (value === null && keyPath.includes('.')) {
+        const keys = keyPath.split('.');
+        let currentLevel = newData as any;
+        for (let i = 0; i < keys.length - 1; i++) {
+          if (currentLevel) {
+            currentLevel = currentLevel[keys[i]];
+          }
         }
+        if (currentLevel) {
+          delete currentLevel[keys[keys.length - 1]];
+        }
+      } else if (keyPath.includes('.')) {
+        const keys = keyPath.split('.');
+        let currentLevel = newData as any;
+        for (let i = 0; i < keys.length - 1; i++) {
+          currentLevel[keys[i]] = currentLevel[keys[i]] || {};
+          currentLevel = currentLevel[keys[i]];
+        }
+        currentLevel[keys[keys.length - 1]] = value;
+      } else {
+        (newData as any)[keyPath] = value;
+      }
     });
 
     newData.updatedAt = new Date().toISOString();
-
-    // Clean up direct assignments if they were part of dot notation
-    Object.keys(dataToSave).forEach(keyPath => {
-        if (keyPath.includes('.')) {
-            delete (newData as any)[keyPath];
-        }
-    });
     
     localStorage.setItem(key, JSON.stringify(newData));
   } catch (error) {

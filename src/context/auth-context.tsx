@@ -39,32 +39,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        await createUserProfile(user);
+    const unsubscribe = onAuthStateChanged(auth, async (newUser) => {
+      // If the user ID has changed, clear the old user's data
+      if (user && newUser?.uid !== user.uid) {
+        clearUserData(user.uid);
+      }
+
+      if (newUser) {
+        await createUserProfile(newUser);
         // Check if data is in local storage, if not, load from DB
-        const localData = getUserData(user.uid);
+        const localData = getUserData(newUser.uid);
         if (!localData) {
-          const dbData = await loadData(user.uid);
+          const dbData = await loadData(newUser.uid);
           if (dbData) {
-            saveUserData(user.uid, dbData);
+            saveUserData(newUser.uid, dbData);
           }
         }
-        setUser(user);
-        // Fire a custom event to notify other parts of the app
-        window.dispatchEvent(new CustomEvent('user-data-loaded'));
+        setUser(newUser);
+        // Fire a custom event to notify other parts of the app that new user data is ready
+        window.dispatchEvent(new CustomEvent('user-data-loaded', { detail: { userId: newUser.uid } }));
       } else {
         setUser(null);
-        // Clear local storage on logout
-        if (auth.currentUser) {
-           clearUserData(auth.currentUser.uid);
-        }
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   const logout = async () => {
     try {
@@ -72,6 +73,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         clearUserData(user.uid);
       }
       await auth.signOut();
+      setUser(null); // Explicitly set user to null
+      // Fire event to tell contexts to clear their state
+      window.dispatchEvent(new CustomEvent('user-logged-out'));
       router.push('/login');
     } catch (error) {
       console.error('Error signing out: ', error);

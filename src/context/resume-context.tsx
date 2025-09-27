@@ -1,3 +1,4 @@
+
 'use client';
 
 import { createContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from 'react';
@@ -57,6 +58,19 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
   const [storedResumeText, setStoredResumeText] = useState<string | undefined>('');
   const [storedJobDescription, setStoredJobDescription] = useState<string | undefined>('');
 
+  const resetState = () => {
+    setResumeText('');
+    setJobDescription('');
+    setResumeFile(null);
+    setAnalysis(null);
+    setImprovements(null);
+    setInterview(null);
+    setQa(null);
+    setStoredResumeText('');
+    setStoredJobDescription('');
+  };
+
+
   const loadDataFromCache = () => {
     if (user) {
       const data = getUserData(user.uid);
@@ -70,7 +84,13 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
 
         setStoredResumeText(data.resumeText);
         setStoredJobDescription(data.jobDescription);
+      } else {
+        // If there's no data for the user, reset the state
+        resetState();
       }
+    } else {
+        // If there is no user, reset the state
+        resetState();
     }
   };
 
@@ -78,17 +98,25 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
     loadDataFromCache();
 
     const handleDataLoad = () => loadDataFromCache();
+    const handleLogout = () => resetState();
+
     window.addEventListener('user-data-loaded', handleDataLoad);
+    window.addEventListener('user-logged-out', handleLogout);
     
     const handleStorageChange = (e: StorageEvent) => {
       if (user && e.key === `resume_buddy_user_${user.uid}`) {
         loadDataFromCache();
+      }
+      // If the item is removed (logout), clear state
+      if (user && e.key === `resume_buddy_user_${user.uid}` && e.newValue === null) {
+        resetState();
       }
     };
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
       window.removeEventListener('user-data-loaded', handleDataLoad);
+      window.removeEventListener('user-logged-out', handleLogout);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, [user]);
