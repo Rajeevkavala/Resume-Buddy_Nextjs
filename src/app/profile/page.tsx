@@ -23,6 +23,8 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
 import { updateUserProfile } from '@/app/actions';
+import { updateProfile } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, {
@@ -78,7 +80,24 @@ export default function ProfilePage() {
         formData.append('photoURL', values.photoURL);
     }
 
-    const promise = updateUserProfile(user.uid, formData).then(async () => {
+    const promise = updateUserProfile(user.uid, formData).then(async (newProfileData) => {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        const updateData: { displayName?: string; photoURL?: string } = {};
+        if (newProfileData.displayName) {
+          updateData.displayName = newProfileData.displayName;
+        }
+        // Use the photoURL from the server action if a new one was uploaded
+        if (newProfileData.photoURL) {
+          updateData.photoURL = newProfileData.photoURL;
+        } else {
+          // Otherwise, retain the existing photoURL
+          updateData.photoURL = currentUser.photoURL || undefined;
+        }
+        
+        await updateProfile(currentUser, updateData);
+      }
+      
       // Force a reload of the user object from Firebase to get the new data
       await forceReloadUser?.();
       return "Profile updated successfully!";

@@ -15,9 +15,6 @@ import { saveData as saveToDb, clearData as clearFromDb, updateUserProfileInDb }
 import type { AnalysisResult } from '@/lib/types';
 import type { AnalyzeResumeContentOutput } from '@/ai/flows/analyze-resume-content';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { updateProfile } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-
 
 const baseSchema = z.object({
   userId: z.string().min(1, 'User ID is required.'),
@@ -166,13 +163,12 @@ export async function runImprovementsGenerationAction(input: {
   return improvements;
 }
 
-export async function updateUserProfile(userId: string, formData: FormData) {
+export async function updateUserProfile(userId: string, formData: FormData): Promise<{ displayName: string; photoURL?: string }> {
   const displayName = formData.get('displayName') as string;
   const photoFile = formData.get('photoURL') as File | null;
-  const currentUser = auth.currentUser;
 
-  if (!currentUser || currentUser.uid !== userId) {
-    throw new Error('User not authenticated.');
+  if (!userId) {
+    throw new Error('User ID is required.');
   }
 
   let photoURL: string | undefined = undefined;
@@ -191,15 +187,14 @@ export async function updateUserProfile(userId: string, formData: FormData) {
   if (photoURL) {
     profileData.photoURL = photoURL;
   }
-
+  
   if (Object.keys(profileData).length > 0) {
-    await updateProfile(currentUser, profileData);
     await updateUserProfileInDb(userId, profileData);
   }
 
   return {
-    displayName: currentUser.displayName,
-    photoURL: currentUser.photoURL,
+    displayName: displayName,
+    photoURL: photoURL,
   };
 }
 
