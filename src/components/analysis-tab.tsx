@@ -247,7 +247,8 @@ export default function AnalysisTab({
                      <div>
                         <h4 className="font-semibold mb-3 flex items-center"><XCircle className="mr-2 h-5 w-5 text-red-500" /> Missing Skills ({missingKeywordsCount})</h4>
                         {analysis.keywordAnalysis?.missingKeywords && analysis.keywordAnalysis.missingKeywords.length > 0 ? (
-                           <div className="flex flex-wrap gap-2">
+                           <>
+                            <div className="flex flex-wrap gap-2">
                                 {analysis.keywordAnalysis.missingKeywords.map((skill, index) => (
                                 <Badge key={index} variant="outline" className="flex items-center">
                                     {getCriticalityIcon(skill.criticality)}
@@ -255,6 +256,16 @@ export default function AnalysisTab({
                                 </Badge>
                                 ))}
                             </div>
+                            <div className="mt-4 p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground space-y-2">
+                                <h5 className="font-semibold text-foreground">Icon Legend</h5>
+                                <div className="flex items-center gap-x-4 gap-y-2 flex-wrap">
+                                    <div className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-red-500" /><span>Critical</span></div>
+                                    <div className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-orange-500" /><span>High Priority</span></div>
+                                    <div className="flex items-center gap-2"><Info className="h-4 w-4 text-yellow-500" /><span>Medium Priority</span></div>
+                                    <div className="flex items-center gap-2"><Info className="h-4 w-4 text-blue-500" /><span>Low Priority</span></div>
+                                </div>
+                            </div>
+                           </>
                         ) : (
                             <p className="text-sm text-muted-foreground">No missing keywords found.</p>
                         )}
@@ -449,6 +460,3 @@ export default function AnalysisTab({
     </div>
   );
 }
-
-
-
