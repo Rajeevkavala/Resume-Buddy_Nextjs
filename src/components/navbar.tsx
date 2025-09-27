@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetContent,
+  SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -83,6 +85,9 @@ export default function Navbar() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left">
+              <SheetHeader>
+                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+              </SheetHeader>
               <Link href="/" className="flex items-center space-x-2 mb-6">
                 <Icons.logo />
                 <span className="inline-block font-bold font-headline text-lg">ResumeBuddy</span>
