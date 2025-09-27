@@ -35,6 +35,7 @@ const qaSchema = baseSchema.extend({
     "Career Goals",
     "Education",
   ]),
+  numQuestions: z.number().min(3).max(10),
 })
 
 const interviewSchema = baseSchema.extend({
@@ -108,6 +109,7 @@ export async function runQAGenerationAction(input: {
   resumeText: string;
   jobDescription: string;
   topic: "General" | "Technical" | "Work Experience" | "Projects" | "Career Goals" | "Education";
+  numQuestions: number;
 }) {
   const validatedFields = qaSchema.safeParse(input);
   if (!validatedFields.success) {
@@ -116,6 +118,7 @@ export async function runQAGenerationAction(input: {
   const qaResult = await generateResumeQA({
     resumeText: validatedFields.data.resumeText,
     topic: validatedFields.data.topic,
+    numQuestions: validatedFields.data.numQuestions,
   });
 
   const dataToSave = {

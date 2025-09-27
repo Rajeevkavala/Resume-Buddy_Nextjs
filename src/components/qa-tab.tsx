@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import type { GenerateResumeQAOutput, QATopic } from '@/lib/types';
 import {
   Accordion,
@@ -14,11 +17,12 @@ import {
 } from './ui/card';
 import {Button} from './ui/button';
 import {Loader2, FileQuestion, MessageSquareQuote, CheckSquare, Tags } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Label } from './ui/label';
+import { Slider } from './ui/slider';
 
 interface QATabProps {
   qa: Record<QATopic, GenerateResumeQAOutput | null> | null;
-  onGenerate: (topic: QATopic) => void;
+  onGenerate: (topic: QATopic, numQuestions: number) => void;
   isLoading: boolean;
   hasDataChanged?: boolean;
   selectedTopic: QATopic;
@@ -35,9 +39,10 @@ const topics: { id: QATopic, title: string, description: string }[] = [
 ];
 
 export default function QATab({qa, onGenerate, isLoading, hasDataChanged, selectedTopic, setSelectedTopic}: QATabProps) {
+  const [numQuestions, setNumQuestions] = useState(5);
   
   const handleGenerateClick = (topic: QATopic) => {
-    onGenerate(topic);
+    onGenerate(topic, numQuestions);
   }
 
   const noDataGenerated = !qa || Object.values(qa).every(val => val === null);
@@ -52,7 +57,7 @@ export default function QATab({qa, onGenerate, isLoading, hasDataChanged, select
             : 'Choose a focus area to generate tailored questions and answers based on your resume.'}
         </p>
 
-         <div className="w-full max-w-lg text-left mb-6">
+        <div className="w-full max-w-2xl space-y-8 mb-8 text-left">
             <div className="flex flex-wrap items-center justify-center gap-2 rounded-lg border p-4">
                 {topics.map(topic => (
                     <Button
@@ -65,7 +70,19 @@ export default function QATab({qa, onGenerate, isLoading, hasDataChanged, select
                     </Button>
                 ))}
             </div>
-         </div>
+            <div className="px-4">
+              <Label htmlFor="numQuestions" className="font-semibold mb-4 block text-center">Number of Questions: <span className="text-primary font-bold">{numQuestions}</span></Label>
+              <Slider
+                id="numQuestions"
+                min={3}
+                max={10}
+                step={1}
+                value={[numQuestions]}
+                onValueChange={(val) => setNumQuestions(val[0])}
+                disabled={isLoading}
+              />
+            </div>
+        </div>
         
         <Button onClick={() => handleGenerateClick(selectedTopic)} disabled={isLoading} size="lg">
           {isLoading ? (
@@ -83,9 +100,9 @@ export default function QATab({qa, onGenerate, isLoading, hasDataChanged, select
       <Card>
         <CardHeader>
           <CardTitle>Q&A Topic Selection</CardTitle>
-          <CardDescription>Select a topic to view or generate questions.</CardDescription>
+          <CardDescription>Select a topic to view or generate questions, and adjust the number of questions you want.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <div className="flex flex-wrap items-center gap-2">
             {topics.map((topic) => (
               <Button
@@ -97,6 +114,18 @@ export default function QATab({qa, onGenerate, isLoading, hasDataChanged, select
               </Button>
             ))}
           </div>
+           <div className="px-4">
+              <Label htmlFor="numQuestions" className="font-semibold mb-4 block text-center">Number of Questions: <span className="text-primary font-bold">{numQuestions}</span></Label>
+              <Slider
+                id="numQuestions"
+                min={3}
+                max={10}
+                step={1}
+                value={[numQuestions]}
+                onValueChange={(val) => setNumQuestions(val[0])}
+                disabled={isLoading}
+              />
+            </div>
         </CardContent>
       </Card>
 

@@ -20,7 +20,7 @@ export default function QAPage() {
 
   const hasDataChanged = (resumeText && resumeText !== storedResumeText) || (jobDescription && jobDescription !== storedJobDescription);
 
-  const handleGeneration = async (topic: Topic) => {
+  const handleGeneration = async (topic: Topic, numQuestions: number) => {
     if (!user) {
       toast.error('Authentication Error', { description: 'You must be logged in to generate Q&A.' });
       return;
@@ -40,7 +40,7 @@ export default function QAPage() {
       setQa({ [topic]: null });
     }
 
-    const promise = runQAGenerationAction({ userId: user.uid, resumeText, jobDescription, topic }).then((result) => {
+    const promise = runQAGenerationAction({ userId: user.uid, resumeText, jobDescription, topic, numQuestions }).then((result) => {
         const newQaData = { ...qa, [topic]: result };
         setQa(newQaData);
         saveUserData(user.uid, {
