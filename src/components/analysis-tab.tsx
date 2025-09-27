@@ -11,7 +11,7 @@ import {Badge} from '@/components/ui/badge';
 import {Button} from './ui/button';
 import {Loader2, CheckCircle, XCircle, RefreshCw} from 'lucide-react';
 import { Separator } from './ui/separator';
-import { Bar, BarChart, LabelList, RadialBar, RadialBarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, LabelList, RadialBar, RadialBarChart, ResponsiveContainer, XAxis, YAxis, Legend } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from './ui/chart';
 
 interface AnalysisTabProps {
@@ -54,10 +54,9 @@ export default function AnalysisTab({
   }
 
   const atsScore = analysis.atsScore || 0;
-  const remainingScore = 100 - atsScore;
   const atsChartData = [
-    { name: 'ATS', value: atsScore, fill: 'hsl(var(--primary))' },
-    { name: 'Remaining', value: remainingScore, fill: 'hsl(var(--destructive))' },
+    { name: 'ATS Score', value: atsScore, fill: 'hsl(var(--primary))' },
+    { name: 'Remaining', value: 100 - atsScore, fill: 'hsl(var(--destructive))' },
   ];
 
   const coverageChartData = [{ name: 'Coverage', value: analysis.contentCoveragePercentage }];
@@ -122,9 +121,8 @@ export default function AnalysisTab({
                 innerRadius={80}
                 outerRadius={100}
                 barSize={10}
-                stackOffset="expand"
               >
-                <RadialBar dataKey="value" stackId="a" background cornerRadius={5} />
+                <RadialBar dataKey="value" background cornerRadius={5} />
                 <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-4xl font-bold font-headline">
                   {analysis.atsScore}
                 </text>
@@ -240,5 +238,7 @@ export default function AnalysisTab({
     </div>
   );
 }
+
+    
 
     
