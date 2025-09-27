@@ -1,9 +1,10 @@
 'use server';
 
 /**
- * @fileOverview Generates role-specific interview questions and answers using AI based on a resume, job description, interview type, and difficulty level.
+ * @fileOverview Generates a multiple-choice quiz for interview preparation using AI,
+ * based on a resume, job description, interview type, and difficulty level.
  *
- * - generateInterviewQuestions - A function that generates interview questions and answers.
+ * - generateInterviewQuestions - A function that generates an interview quiz.
  * - GenerateInterviewQuestionsInput - The input type for the generateInterviewQuestions function.
  * - GenerateInterviewQuestionsOutput - The return type for the generateInterviewQuestions function.
  */
@@ -30,14 +31,16 @@ export type GenerateInterviewQuestionsInput = z.infer<
   typeof GenerateInterviewQuestionsInputSchema
 >;
 
+const MCQSchema = z.object({
+  question: z.string().describe('The multiple-choice question text.'),
+  options: z.array(z.string()).length(4).describe('An array of exactly 4 possible answer choices.'),
+  correctAnswerIndex: z.number().min(0).max(3).describe('The index (0-3) of the correct answer in the `options` array.'),
+  explanation: z.string().describe('A detailed explanation of why the correct answer is correct, and why the others are incorrect.'),
+  category: z.string().describe('A brief category for the question (e.g., "System Design", "Leadership", "Teamwork").')
+});
+
 const GenerateInterviewQuestionsOutputSchema = z.object({
-  questionsAndAnswers: z.array(
-    z.object({
-      question: z.string().describe('The generated interview question, tailored to the specified inputs.'),
-      answer: z.string().describe('A detailed, structured sample answer using frameworks like STAR where applicable. The answer should reference the provided resume content to be as personalized as possible.'),
-      category: z.string().describe('A brief category for the question (e.g., "System Design", "Leadership", "Teamwork").')
-    })
-  ),
+  questions: z.array(MCQSchema),
 });
 
 export type GenerateInterviewQuestionsOutput = z.infer<
@@ -54,7 +57,7 @@ const prompt = ai.definePrompt({
   name: 'generateInterviewQuestionsPrompt',
   input: {schema: GenerateInterviewQuestionsInputSchema},
   output: {schema: GenerateInterviewQuestionsOutputSchema},
-  prompt: `You are an AI-powered interview preparation coach. Your task is to generate a list of insightful interview questions and comprehensive sample answers based on the provided resume, job description, and user-defined settings.
+  prompt: `You are an AI-powered interview preparation coach. Your task is to generate a multiple-choice quiz with insightful questions, clear options, and comprehensive explanations based on the provided resume, job description, and user-defined settings.
 
 **Inputs:**
 1.  **Resume Text**:
@@ -69,16 +72,15 @@ const prompt = ai.definePrompt({
 
 **Instructions:**
 1.  **Analyze Context**: Thoroughly analyze the resume and job description to understand the candidate's experience and the role's requirements.
-2.  **Tailor Questions**: Generate exactly {{numQuestions}} questions that are highly relevant to the specified **Interview Type** and **Difficulty Level**.
+2.  **Generate {{numQuestions}} MCQs**: Create exactly {{numQuestions}} multiple-choice questions that are highly relevant to the specified **Interview Type** and **Difficulty Level**.
     *   For **Technical** interviews, focus on areas like system design, coding problems, and technology deep-dives relevant to the job.
     *   For **Behavioral** interviews, create scenarios that probe into competencies like teamwork, problem-solving, and leadership.
     *   For **Leadership** interviews, focus on strategic thinking, team management, and decision-making.
     *   For **General** interviews, provide a mix of question types.
-3.  **Craft Sample Answers**: For each question, provide a detailed, well-structured sample answer.
-    *   **Personalize**: Reference specific projects, skills, or experiences directly from the resume to make the answer authentic.
-    *   **Use Frameworks**: For behavioral questions, structure the answer using the STAR (Situation, Task, Action, Result) method.
-    *   **Be Specific**: Include quantifiable results and concrete examples.
-4.  **Categorize**: Assign a relevant, brief category to each question (e.g., "System Design", "Conflict Resolution", "Strategic Planning").
+3.  **Create Options**: For each question, provide exactly 4 distinct answer options. One option must be clearly correct, and the others should be plausible but incorrect distractors.
+4.  **Identify Correct Answer**: Specify the index (0-3) of the correct answer.
+5.  **Craft Explanations**: For each question, write a detailed explanation that clarifies why the correct answer is right and provides context on the other options. This is a critical learning tool for the user.
+6.  **Categorize**: Assign a relevant, brief category to each question (e.g., "System Design", "Conflict Resolution", "Strategic Planning").
 
 Format your output as a valid JSON object matching the defined schema. Ensure the content is professional, insightful, and genuinely helpful for interview preparation.
 `,

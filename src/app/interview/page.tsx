@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useContext } from 'react';
-import type { GenerateInterviewQuestionsInput } from '@/ai/flows/generate-interview-questions';
+import type { GenerateInterviewQuestionsInput, GenerateInterviewQuestionsOutput } from '@/ai/flows/generate-interview-questions';
 import { runInterviewGenerationAction } from '@/app/actions';
 import { ResumeContext } from '@/context/resume-context';
 import { toast } from 'sonner';
@@ -20,8 +20,14 @@ export default function InterviewPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGeneration = async (config: Omit<GenerateInterviewQuestionsInput, 'resumeText' | 'jobDescription'>) => {
+    // A numQuestions of -1 is a signal from the child to restart/clear the quiz
+    if (config.numQuestions === -1) {
+        setInterview(null);
+        return;
+    }
+    
     if (!user) {
-      toast.error('Authentication Error', { description: 'You must be logged in to generate interview prep.' });
+      toast.error('Authentication Error', { description: 'You must be logged in to generate an interview quiz.' });
       return;
     }
     if (!resumeText || !jobDescription) {
@@ -41,7 +47,11 @@ export default function InterviewPage() {
       ...config,
     };
 
-    const promise = runInterviewGenerationAction(input).then((result) => {
+    const promise = runInterviewGenerationAction(input).then((result: GenerateInterviewQuestionsOutput) => {
+        // Validate that the result has questions
+        if (!result || !result.questions || result.questions.length === 0) {
+            throw new Error("The AI failed to generate questions. Please try again.");
+        }
         setInterview(result);
         // We only save the result to the context/local storage, not the config that generated it.
         saveUserData(user.uid, {
@@ -54,8 +64,8 @@ export default function InterviewPage() {
     });
 
     toast.promise(promise, {
-      loading: 'Generating interview questions...',
-      success: () => 'Interview prep complete!',
+      loading: 'Generating interview quiz...',
+      success: () => 'Interview quiz is ready!',
       error: (error) => error.message || 'An unexpected error occurred.',
       finally: () => setIsLoading(false)
     });
@@ -73,9 +83,9 @@ export default function InterviewPage() {
     <main className="flex-1 p-4 md:p-8">
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline text-xl">AI-Powered Interview Prep</CardTitle>
+          <CardTitle className="font-headline text-xl">AI-Powered Interview Quiz</CardTitle>
           <CardDescription>
-            Configure your interview type and difficulty to generate tailored questions.
+            Configure your interview type and difficulty to generate a tailored quiz.
           </CardDescription>
         </CardHeader>
         <CardContent>

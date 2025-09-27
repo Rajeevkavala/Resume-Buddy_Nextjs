@@ -257,7 +257,6 @@ export default function AnalysisTab({
                                 ))}
                             </div>
                             <div className="mt-4 p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground space-y-2">
-                                <h5 className="font-semibold text-foreground">Icon Legend</h5>
                                 <div className="flex items-center gap-x-4 gap-y-2 flex-wrap">
                                     <div className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-red-500" /><span>Critical</span></div>
                                     <div className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-orange-500" /><span>High Priority</span></div>
