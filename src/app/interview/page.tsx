@@ -56,6 +56,7 @@ export default function InterviewPage() {
     }
     
     setIsLoading(true);
+    setInterview(null); // Clear previous interview data
     const promise = runInterviewGenerationAction({ userId: user.uid, resumeText, jobDescription });
 
     toast.promise(promise, {

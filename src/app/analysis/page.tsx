@@ -59,6 +59,7 @@ export default function AnalysisPage() {
     }
 
     setIsLoading(true);
+    setAnalysis(null); // Clear previous analysis
     const promise = runAnalysisAction({ userId: user.uid, resumeText, jobDescription });
 
     toast.promise(promise, {

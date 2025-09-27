@@ -66,23 +66,25 @@ const analyzeResumeContentPrompt = ai.definePrompt({
   name: 'analyzeResumeContentPrompt',
   input: {schema: AnalyzeResumeContentInputSchema},
   output: {schema: AnalyzeResumeContentOutputSchema},
-  prompt: `You are an AI resume analyst. Analyze the resume text against the job description provided.
+  prompt: `You are an expert career coach and resume analyst. Your task is to provide a detailed, professional, and actionable analysis of the provided resume against the given job description.
 
-Resume Text: {{{resumeText}}}
+Resume Text:
+{{{resumeText}}}
 
-Job Description: {{{jobDescription}}}
+Job Description:
+{{{jobDescription}}}
 
-Provide a detailed analysis including:
-1. An ATS score (0-100).
-2. A list of skill gaps (skills from the job description not found in the resume).
-3. The content coverage percentage (percentage of job description keywords covered).
-4. A brief summary of how well the resume matches the job description.
-5. A keyword analysis, listing keywords present and missing from the resume based on the job description.
-6. Feedback on the use of action verbs, suggesting stronger alternatives if needed.
-7. Feedback on the use of quantifiable results, providing examples on how to improve.
+Analyze the resume on the following criteria and provide the output in a valid JSON format that adheres to the schema.
 
-
-Ensure that the output is in a valid JSON format that adheres to the provided schema.`,
+1.  **ATS Score (0-100)**: Evaluate the resume's compatibility with Applicant Tracking Systems. Consider keyword density, formatting, and standard section headings. A higher score means better optimization.
+2.  **Content Coverage Percentage**: Calculate the percentage of skills, qualifications, and requirements from the job description that are addressed in the resume.
+3.  **Summary**: Write a concise, professional summary (3-4 sentences) of the resume's strengths and weaknesses in relation to this specific job.
+4.  **Keyword and Skill Analysis**:
+    *   Identify crucial keywords and skills from the job description.
+    *   List the keywords that are present in the resume.
+    *   List the important keywords and skills that are missing from the resume (this will form the skillGaps).
+5.  **Action Verb Feedback**: Analyze the use of action verbs. The feedback should be a paragraph that assesses the strength and variety of verbs used. If weak verbs are present (e.g., "Responsible for," "Helped with"), suggest stronger alternatives (e.g., "Managed," "Orchestrated," "Accelerated").
+6.  **Quantifiable Results Feedback**: Analyze how well the resume uses numbers and data to show impact. The feedback should be a paragraph explaining the importance of quantifying achievements. Provide 2-3 specific examples from the resume and show how they could be improved by adding metrics (e.g., "Increased sales" could become "Increased quarterly sales by 15% through strategic outreach campaigns").`,
 });
 
 const analyzeResumeContentFlow = ai.defineFlow(

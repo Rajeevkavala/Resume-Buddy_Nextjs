@@ -61,6 +61,7 @@ export default function ImprovementPage() {
     }
     
     setIsLoading(true);
+    setImprovements(null); // Clear previous improvements
     const promise = runImprovementsGenerationAction({ userId: user.uid, resumeText, jobDescription });
 
     toast.promise(promise, {

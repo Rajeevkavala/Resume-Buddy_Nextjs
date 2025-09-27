@@ -57,6 +57,7 @@ export default function QAPage() {
     }
 
     setIsLoading(true);
+    setQa(null); // Clear previous Q&A data
     const promise = runQAGenerationAction({ userId: user.uid, resumeText, jobDescription });
 
     toast.promise(promise, {
