@@ -51,29 +51,48 @@ export default function QATab({qa, onGenerate, isLoading, hasDataChanged}: QATab
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Resume Q&A</CardTitle>
-        <CardDescription>
-          AI-generated questions and answers based on your resume.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Accordion type="single" collapsible className="w-full">
-          {qa.qaPairs.map((pair, index) => (
-            <AccordionItem value={`item-${index}`} key={index}>
-              <AccordionTrigger className="text-left">
-                {pair.question}
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-muted-foreground">
-                  {pair.answer}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Resume Q&A</CardTitle>
+          <CardDescription>
+            AI-generated questions and answers based on your resume.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Accordion type="single" collapsible className="w-full">
+            {qa.qaPairs.map((pair, index) => (
+              <AccordionItem value={`item-${index}`} key={index}>
+                <AccordionTrigger className="text-left">
+                  {pair.question}
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-muted-foreground">
+                    {pair.answer}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+            <CardTitle>Regenerate Q&A</CardTitle>
+            <CardDescription>
+                Click the button below to regenerate the Q&A with the same resume and job description.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Button onClick={onGenerate} disabled={isLoading}>
+                {isLoading ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Regenerating...</>
+                ) : (
+                    <><RefreshCw className="mr-2 h-4 w-4" /> Regenerate Q&A</>
+                )}
+            </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

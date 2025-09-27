@@ -104,6 +104,24 @@ export default function ImprovementsTab({
           </Button>
         </CardContent>
       </Card>
+
+       <Card>
+        <CardHeader>
+            <CardTitle>Regenerate Improvements</CardTitle>
+            <CardDescription>
+                Click the button below to regenerate the improvements with the same resume and job description.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Button onClick={onGenerate} disabled={isLoading}>
+                {isLoading ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Regenerating...</>
+                ) : (
+                    <><RefreshCw className="mr-2 h-4 w-4" /> Regenerate Improvements</>
+                )}
+            </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

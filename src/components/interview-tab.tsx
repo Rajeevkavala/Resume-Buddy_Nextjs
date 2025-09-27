@@ -55,34 +55,53 @@ export default function InterviewTab({
     );
   }
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Interview Prep</CardTitle>
-        <CardDescription>
-          AI-generated practice questions and answers for your interview.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Accordion type="single" collapsible className="w-full">
-          {interview.questionsAndAnswers.map((item, index) => (
-            <AccordionItem value={`item-${index}`} key={index}>
-              <AccordionTrigger className="text-left">
-                {item.question}
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="prose prose-sm dark:prose-invert max-w-none space-y-2">
-                  <h4 className="font-semibold text-foreground">
-                    Suggested Answer:
-                  </h4>
-                  <p className="text-muted-foreground whitespace-pre-wrap">
-                    {item.answer}
-                  </p>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Interview Prep</CardTitle>
+          <CardDescription>
+            AI-generated practice questions and answers for your interview.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Accordion type="single" collapsible className="w-full">
+            {interview.questionsAndAnswers.map((item, index) => (
+              <AccordionItem value={`item-${index}`} key={index}>
+                <AccordionTrigger className="text-left">
+                  {item.question}
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="prose prose-sm dark:prose-invert max-w-none space-y-2">
+                    <h4 className="font-semibold text-foreground">
+                      Suggested Answer:
+                    </h4>
+                    <p className="text-muted-foreground whitespace-pre-wrap">
+                      {item.answer}
+                    </p>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+            <CardTitle>Regenerate Questions</CardTitle>
+            <CardDescription>
+                Click the button below to regenerate the questions with the same resume and job description.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Button onClick={onGenerate} disabled={isLoading}>
+                {isLoading ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Regenerating...</>
+                ) : (
+                    <><RefreshCw className="mr-2 h-4 w-4" /> Regenerate Questions</>
+                )}
+            </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
