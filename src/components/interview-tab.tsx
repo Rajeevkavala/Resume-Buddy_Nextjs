@@ -58,6 +58,23 @@ export default function InterviewTab({
     <div className="space-y-6">
       <Card>
         <CardHeader>
+            <CardTitle>Regenerate Questions</CardTitle>
+            <CardDescription>
+                Click the button below to regenerate the questions with the same resume and job description.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Button onClick={onGenerate} disabled={isLoading}>
+                {isLoading ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Regenerating...</>
+                ) : (
+                    <><RefreshCw className="mr-2 h-4 w-4" /> Regenerate Questions</>
+                )}
+            </Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
           <CardTitle>Interview Prep</CardTitle>
           <CardDescription>
             AI-generated practice questions and answers for your interview.
@@ -83,23 +100,6 @@ export default function InterviewTab({
               </AccordionItem>
             ))}
           </Accordion>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-            <CardTitle>Regenerate Questions</CardTitle>
-            <CardDescription>
-                Click the button below to regenerate the questions with the same resume and job description.
-            </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Button onClick={onGenerate} disabled={isLoading}>
-                {isLoading ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Regenerating...</>
-                ) : (
-                    <><RefreshCw className="mr-2 h-4 w-4" /> Regenerate Questions</>
-                )}
-            </Button>
         </CardContent>
       </Card>
     </div>

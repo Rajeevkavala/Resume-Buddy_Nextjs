@@ -56,6 +56,23 @@ export default function AnalysisTab({
     <div className="space-y-6">
       <Card>
         <CardHeader>
+            <CardTitle>Regenerate Analysis</CardTitle>
+            <CardDescription>
+                Click the button below to regenerate the analysis with the same resume and job description.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Button onClick={onGenerate} disabled={isLoading}>
+                {isLoading ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Regenerating...</>
+                ) : (
+                    <><RefreshCw className="mr-2 h-4 w-4" /> Regenerate Analysis</>
+                )}
+            </Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
           <CardTitle>Analysis Summary</CardTitle>
         </CardHeader>
         <CardContent>
@@ -181,24 +198,6 @@ export default function AnalysisTab({
               </p>
             )}
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-            <CardTitle>Regenerate Analysis</CardTitle>
-            <CardDescription>
-                Click the button below to regenerate the analysis with the same resume and job description.
-            </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Button onClick={onGenerate} disabled={isLoading}>
-                {isLoading ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Regenerating...</>
-                ) : (
-                    <><RefreshCw className="mr-2 h-4 w-4" /> Regenerate Analysis</>
-                )}
-            </Button>
         </CardContent>
       </Card>
     </div>
