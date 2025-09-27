@@ -33,7 +33,7 @@ export default function RootLayout({
         >
           <AuthProvider>
             <ResumeProvider>
-              <div className="flex min-h-screen w-full flex-col bg-muted/40">
+              <div className="flex min-h-screen w-full flex-col">
                 <Navbar />
                 {children}
               </div>
