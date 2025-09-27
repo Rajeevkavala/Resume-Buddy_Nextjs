@@ -4,6 +4,7 @@ import { createContext, useState, ReactNode, Dispatch, SetStateAction, useEffect
 import { getUserData } from '@/lib/local-storage';
 import { useAuth } from './auth-context';
 import type { AnalysisResult, QATopic, GenerateResumeQAOutput } from '@/lib/types';
+import type { GenerateInterviewQuestionsOutput } from '@/ai/flows/generate-interview-questions';
 
 interface ResumeContextType {
   resumeText: string;
@@ -14,13 +15,13 @@ interface ResumeContextType {
   setResumeFile: Dispatch<SetStateAction<File | null>>;
   analysis: any;
   improvements: any;
-  interview: any;
+  interview: GenerateInterviewQuestionsOutput | null;
   qa: Record<QATopic, GenerateResumeQAOutput | null> | null;
   storedResumeText?: string;
   storedJobDescription?: string;
   setAnalysis: (data: any) => void;
   setImprovements: (data: any) => void;
-  setInterview: (data: any) => void;
+  setInterview: (data: GenerateInterviewQuestionsOutput | null) => void;
   setQa: (data: Record<QATopic, GenerateResumeQAOutput | null> | null) => void;
   loadDataFromCache: () => void;
 }
@@ -50,7 +51,7 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [analysis, setAnalysis] = useState(null);
   const [improvements, setImprovements] = useState(null);
-  const [interview, setInterview] = useState(null);
+  const [interview, setInterview] = useState<GenerateInterviewQuestionsOutput | null>(null);
   const [qa, setQa] = useState<Record<QATopic, GenerateResumeQAOutput | null> | null>(null);
   
   const [storedResumeText, setStoredResumeText] = useState<string | undefined>('');

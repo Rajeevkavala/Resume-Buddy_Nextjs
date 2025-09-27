@@ -2,6 +2,7 @@
 
 import {z} from 'zod';
 import {analyzeResumeContent} from '@/ai/flows/analyze-resume-content';
+import type { GenerateInterviewQuestionsInput } from '@/ai/flows/generate-interview-questions';
 import {generateInterviewQuestions} from '@/ai/flows/generate-interview-questions';
 import {generateResumeQA} from '@/ai/flows/generate-resume-qa';
 import {suggestResumeImprovements} from '@/ai/flows/suggest-resume-improvements';
@@ -35,6 +36,12 @@ const qaSchema = baseSchema.extend({
     "Education",
   ]),
 })
+
+const interviewSchema = baseSchema.extend({
+  interviewType: z.enum(["Technical", "Behavioral", "Leadership", "General"]),
+  difficultyLevel: z.enum(["Entry", "Mid", "Senior", "Executive"]),
+  numQuestions: z.number().min(3).max(15),
+});
 
 export async function extractText(
   formData: FormData
@@ -121,19 +128,12 @@ export async function runQAGenerationAction(input: {
   return qaResult;
 }
 
-export async function runInterviewGenerationAction(input: {
-  userId: string;
-  resumeText: string;
-  jobDescription: string;
-}) {
-  const validatedFields = baseSchema.safeParse(input);
+export async function runInterviewGenerationAction(input: GenerateInterviewQuestionsInput & { userId: string }) {
+  const validatedFields = interviewSchema.safeParse(input);
   if (!validatedFields.success) {
     throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
   }
-  const interview = await generateInterviewQuestions({
-    ...validatedFields.data,
-    numQuestions: 5,
-  });
+  const interview = await generateInterviewQuestions(validatedFields.data);
   await saveToDb(input.userId, { interview, resumeText: input.resumeText, jobDescription: input.jobDescription });
   return interview;
 }

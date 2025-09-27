@@ -1,7 +1,7 @@
-
 'use client';
 
 import { useState, useContext } from 'react';
+import type { GenerateInterviewQuestionsInput } from '@/ai/flows/generate-interview-questions';
 import { runInterviewGenerationAction } from '@/app/actions';
 import { ResumeContext } from '@/context/resume-context';
 import { toast } from 'sonner';
@@ -11,14 +11,15 @@ import { useAuth } from '@/context/auth-context';
 import { Loader2 } from 'lucide-react';
 import { saveUserData } from '@/lib/local-storage';
 
+export type InterviewType = "Technical" | "Behavioral" | "Leadership" | "General";
+export type DifficultyLevel = "Entry" | "Mid" | "Senior" | "Executive";
+
 export default function InterviewPage() {
-  const { resumeText, jobDescription, interview, setInterview, storedResumeText, storedJobDescription, loadDataFromCache } = useContext(ResumeContext);
+  const { resumeText, jobDescription, interview, setInterview, loadDataFromCache } = useContext(ResumeContext);
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  const hasDataChanged = (resumeText && resumeText !== storedResumeText) || (jobDescription && jobDescription !== storedJobDescription);
-
-  const handleGeneration = async () => {
+  const handleGeneration = async (config: Omit<GenerateInterviewQuestionsInput, 'resumeText' | 'jobDescription'>) => {
     if (!user) {
       toast.error('Authentication Error', { description: 'You must be logged in to generate interview prep.' });
       return;
@@ -32,8 +33,17 @@ export default function InterviewPage() {
     
     setIsLoading(true);
     setInterview(null); // Clear previous interview data
-    const promise = runInterviewGenerationAction({ userId: user.uid, resumeText, jobDescription }).then((result) => {
+
+    const input = {
+      userId: user.uid,
+      resumeText,
+      jobDescription,
+      ...config,
+    };
+
+    const promise = runInterviewGenerationAction(input).then((result) => {
         setInterview(result);
+        // We only save the result to the context/local storage, not the config that generated it.
         saveUserData(user.uid, {
             interview: result,
             resumeText,
@@ -63,9 +73,9 @@ export default function InterviewPage() {
     <main className="flex-1 p-4 md:p-8">
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline text-xl">Interview Prep</CardTitle>
+          <CardTitle className="font-headline text-xl">AI-Powered Interview Prep</CardTitle>
           <CardDescription>
-            Practice with AI-generated questions tailored to the role.
+            Configure your interview type and difficulty to generate tailored questions.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -73,7 +83,6 @@ export default function InterviewPage() {
             interview={interview}
             onGenerate={handleGeneration}
             isLoading={isLoading}
-            hasDataChanged={hasDataChanged}
           />
         </CardContent>
       </Card>
