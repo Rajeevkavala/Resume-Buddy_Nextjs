@@ -14,6 +14,7 @@ interface AuthContextType {
   loading: boolean;
   logout: () => void;
   signInWithGoogle: () => void;
+  forceReloadUser?: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -27,6 +28,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  const forceReloadUser = async () => {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+        await currentUser.reload();
+        setUser({ ...currentUser }); // Create a new object to trigger re-render
+    }
+  };
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -82,7 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout, signInWithGoogle }}>
+    <AuthContext.Provider value={{ user, loading, logout, signInWithGoogle, forceReloadUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, Menu, X } from 'lucide-react';
+import { LogOut, Menu, User as UserIcon } from 'lucide-react';
 import { Icons } from '@/components/icons';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useAuth } from '@/context/auth-context';
@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from './ui/separator';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 
 const navItems = [
   { href: '/', label: 'Dashboard' },
@@ -43,7 +44,7 @@ export default function Navbar() {
     return name
       .split(' ')
       .map(n => n[0])
-      .join('');
+      .join('').toUpperCase();
   };
 
   if (!user) {
@@ -117,20 +118,26 @@ export default function Navbar() {
                 </nav>
                 <div className="mt-auto">
                     <Separator className="my-4" />
-                    <div className="flex items-center justify-between">
-                         <div className="flex items-center gap-2">
-                            <Avatar className="h-9 w-9">
-                                <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
-                                <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
-                            </Avatar>
-                            <div className='text-sm'>
-                                <p className='font-semibold'>{user.displayName}</p>
-                                <p className='text-muted-foreground truncate max-w-[150px]'>{user.email}</p>
-                            </div>
-                         </div>
-                         <Button variant="ghost" size="icon" onClick={handleLogout}>
-                            <LogOut className="h-5 w-5" />
-                        </Button>
+                    <SheetClose asChild>
+                        <Link href="/profile" className="flex items-center w-full rounded-md px-3 py-2 text-lg font-medium transition-colors text-muted-foreground hover:bg-muted">
+                            <UserIcon className="mr-3 h-5 w-5" />
+                            Profile
+                        </Link>
+                    </SheetClose>
+                     <Button variant="ghost" onClick={handleLogout} className="w-full justify-start rounded-md px-3 py-2 text-lg font-medium transition-colors text-muted-foreground hover:bg-muted">
+                        <LogOut className="mr-3 h-5 w-5" />
+                        Logout
+                    </Button>
+                    <Separator className="my-4" />
+                    <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                            <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
+                            <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
+                        </Avatar>
+                        <div className='text-sm'>
+                            <p className='font-semibold'>{user.displayName}</p>
+                            <p className='text-muted-foreground truncate max-w-[150px]'>{user.email}</p>
+                        </div>
                     </div>
                 </div>
               </div>
@@ -167,16 +174,36 @@ export default function Navbar() {
 
         <div className="flex flex-1 items-center justify-end space-x-2">
           <ThemeToggle />
-          <div className="hidden md:flex items-center gap-3">
-             <Avatar className="h-9 w-9">
-                <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
-                <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
-            </Avatar>
-            <Button variant="outline" onClick={logout} size="sm">
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-            </Button>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Avatar className="h-10 w-10">
+                        <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
+                        <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
+                    </Avatar>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                        <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                    </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                        <UserIcon className="mr-2 h-4 w-4" />
+                        <span>Profile</span>
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

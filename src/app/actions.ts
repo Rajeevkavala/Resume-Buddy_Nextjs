@@ -1,3 +1,4 @@
+
 'use server';
 
 import {z} from 'zod';
@@ -10,9 +11,13 @@ import {Packer, Document, Paragraph, TextRun} from 'docx';
 import PDFDocument from 'pdfkit';
 import mammoth from 'mammoth';
 import pdf from 'pdf-parse-fork';
-import { saveData as saveToDb, clearData as clearFromDb } from '@/lib/firestore';
+import { saveData as saveToDb, clearData as clearFromDb, updateUserProfileInDb } from '@/lib/firestore';
 import type { AnalysisResult } from '@/lib/types';
 import type { AnalyzeResumeContentOutput } from '@/ai/flows/analyze-resume-content';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { updateProfile } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+
 
 const baseSchema = z.object({
   userId: z.string().min(1, 'User ID is required.'),
@@ -159,6 +164,43 @@ export async function runImprovementsGenerationAction(input: {
   });
   await saveToDb(input.userId, { improvements, resumeText: input.resumeText, jobDescription: input.jobDescription });
   return improvements;
+}
+
+export async function updateUserProfile(userId: string, formData: FormData) {
+  const displayName = formData.get('displayName') as string;
+  const photoFile = formData.get('photoURL') as File | null;
+  const currentUser = auth.currentUser;
+
+  if (!currentUser || currentUser.uid !== userId) {
+    throw new Error('User not authenticated.');
+  }
+
+  let photoURL: string | undefined = undefined;
+
+  if (photoFile && photoFile.size > 0) {
+    const storage = getStorage();
+    const storageRef = ref(storage, `profile-pictures/${userId}/${photoFile.name}`);
+    const snapshot = await uploadBytes(storageRef, photoFile);
+    photoURL = await getDownloadURL(snapshot.ref);
+  }
+
+  const profileData: { displayName?: string; photoURL?: string } = {};
+  if (displayName) {
+    profileData.displayName = displayName;
+  }
+  if (photoURL) {
+    profileData.photoURL = photoURL;
+  }
+
+  if (Object.keys(profileData).length > 0) {
+    await updateProfile(currentUser, profileData);
+    await updateUserProfileInDb(userId, profileData);
+  }
+
+  return {
+    displayName: currentUser.displayName,
+    photoURL: currentUser.photoURL,
+  };
 }
 
 export async function exportDocx(text: string) {

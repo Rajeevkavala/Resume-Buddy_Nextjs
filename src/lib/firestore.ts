@@ -24,6 +24,16 @@ export const createUserProfile = async (user: User) => {
   }
 };
 
+export const updateUserProfileInDb = async (userId: string, data: { displayName?: string; photoURL?: string }) => {
+    const userRef = doc(db, 'users', userId);
+    try {
+        await updateDoc(userRef, data);
+    } catch (error) {
+        console.error('Error updating user profile in Firestore:', error);
+        // It's okay if this fails, as the auth profile is the source of truth
+    }
+};
+
 export const saveData = async (
   userId: string,
   data: Partial<AnalysisResult>
