@@ -11,8 +11,11 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { AnalyzeResumeContentOutputSchema } from './analyze-resume-content';
 
+const ImpactForecastSchema = z.object({
+    before: z.number().describe('The score before the improvement.'),
+    after: z.number().describe('The score after the improvement.'),
+});
 
 const SuggestResumeImprovementsInputSchema = z.object({
   resumeText: z
@@ -22,16 +25,18 @@ const SuggestResumeImprovementsInputSchema = z.object({
     .string()
     .optional()
     .describe('The job description for tailoring the resume improvements.'),
-  previousAnalysis: AnalyzeResumeContentOutputSchema.optional().describe('The output from a previous run of the resume analyzer flow. Use this for the "before" values in the impact forecast.')
+  previousAnalysis: z.object({
+      atsScore: z.number().optional(),
+      keywordAnalysis: z.object({
+          presentKeywords: z.array(z.string()).optional(),
+          missingKeywords: z.array(z.object({ skill: z.string(), criticality: z.string()})).optional(),
+      }).optional(),
+  }).optional().describe('The output from a previous run of the resume analyzer flow. Use this for the "before" values in the impact forecast.')
 });
 export type SuggestResumeImprovementsInput = z.infer<
   typeof SuggestResumeImprovementsInputSchema
 >;
 
-const ImpactForecastSchema = z.object({
-    before: z.number().describe('The score before the improvement.'),
-    after: z.number().describe('The score after the improvement.'),
-});
 
 const SuggestResumeImprovementsOutputSchema = z.object({
   improvedResumeText: z
