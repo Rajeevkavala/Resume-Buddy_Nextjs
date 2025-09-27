@@ -5,7 +5,7 @@
  *
  * - suggestResumeImprovements - A function that suggests improvements to the resume content.
  * - SuggestResumeImprovementsInput - The input type for the suggestResumeImprovements function.
- * - SuggestResumeImprovementsOutput - The return type for the suggestResumeImprovements function.
+ * - SuggestResumeImprovementsOutput - The return type for the suggestResumeimprovements function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -51,21 +51,20 @@ const prompt = ai.definePrompt({
 Resume Text:
 {{{resumeText}}}
 
-Job Description (if provided):
+{{#if jobDescription}}
+Job Description:
 {{{jobDescription}}}
+{{/if}}
 
 Instructions:
 1. Rewrite the resume content to be more concise, clear, and impactful.
 2. Use action verbs and quantifiable results to demonstrate accomplishments.
-3. Optimize the resume for ATS systems by including relevant keywords from the job description.
+3. Optimize the resume for ATS systems by including relevant keywords from the job description (if provided).
 4. Ensure proper formatting and structure for easy readability.
 5. Provide a summary of the improvements made.
 
-Output the improved resume text and a summary of the changes.
-
-Improved Resume Text:
-
-Improvements Summary:`,
+Your response should be in the format defined by the output schema.
+`,
 });
 
 const suggestResumeImprovementsFlow = ai.defineFlow(
