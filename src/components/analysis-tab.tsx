@@ -1,4 +1,3 @@
-
 import type {AnalyzeResumeContentOutput} from '@/ai/flows/analyze-resume-content';
 import {
   Card,
@@ -11,10 +10,12 @@ import {Badge} from '@/components/ui/badge';
 import {Button} from './ui/button';
 import {Loader2, RefreshCw, CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
 import { Separator } from './ui/separator';
-import { PieChart, Pie, Cell, ResponsiveContainer, Label, Legend, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Label, Tooltip, Legend, RadialBarChart, RadialBar, PolarGrid } from 'recharts';
 import { Progress } from './ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { ChartContainer, ChartTooltipContent } from './ui/chart';
+import { ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from './ui/chart';
+import { useMemo } from 'react';
+
 
 interface AnalysisTabProps {
   analysis: AnalyzeResumeContentOutput | null;
@@ -68,6 +69,47 @@ export default function AnalysisTab({
     return 'Generate Analysis';
   }
 
+  const missingSkillsByCriticality = useMemo(() => {
+    if (!analysis?.keywordAnalysis?.missingKeywords) {
+      return [];
+    }
+    const counts = analysis.keywordAnalysis.missingKeywords.reduce((acc, skill) => {
+      acc[skill.criticality] = (acc[skill.criticality] || 0) + 1;
+      return acc;
+    }, {} as Record<"Critical" | "High" | "Medium" | "Low", number>);
+
+    return [
+      { name: 'Critical', value: counts.Critical || 0, fill: 'hsl(var(--destructive))' },
+      { name: 'High', value: counts.High || 0, fill: 'hsl(var(--chart-2))' },
+      { name: 'Medium', value: counts.Medium || 0, fill: 'hsl(var(--chart-3))' },
+      { name: 'Low', value: counts.Low || 0, fill: 'hsl(var(--chart-5))' },
+    ].filter(item => item.value > 0);
+
+  }, [analysis?.keywordAnalysis?.missingKeywords]);
+  
+  const criticalityChartConfig = {
+    value: {
+      label: 'Skills',
+    },
+    Critical: {
+      label: 'Critical',
+      color: 'hsl(var(--destructive))',
+    },
+    High: {
+      label: 'High',
+      color: 'hsl(var(--chart-2))',
+    },
+    Medium: {
+      label: 'Medium',
+      color: 'hsl(var(--chart-3))',
+    },
+    Low: {
+      label: 'Low',
+      color: 'hsl(var(--chart-5))',
+    },
+  };
+
+
   if (!analysis || hasDataChanged) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg min-h-[400px]">
@@ -86,32 +128,13 @@ export default function AnalysisTab({
   const atsScore = analysis.atsScore || 0;
   const atsChartData = [
     { name: 'Score', value: atsScore, fill: 'hsl(var(--primary))' },
-    { name: 'Remaining', value: 100 - atsScore, fill: 'hsl(var(--destructive))' },
+    { name: 'Remaining', value: 100 - atsScore, fill: 'hsl(var(--muted))' },
   ];
 
   const presentKeywordsCount = analysis.keywordAnalysis?.presentKeywords?.length || 0;
   const missingKeywordsCount = analysis.keywordAnalysis?.missingKeywords?.length || 0;
   const totalKeywords = presentKeywordsCount + missingKeywordsCount;
   const skillsMatchPercentage = totalKeywords > 0 ? Math.round((presentKeywordsCount / totalKeywords) * 100) : 0;
-  
-  const skillsChartData = [
-    { name: 'Matched Skills', value: presentKeywordsCount, fill: 'hsl(var(--primary))' },
-    { name: 'Missing Skills', value: missingKeywordsCount, fill: 'hsl(var(--destructive))' },
-  ];
-
-  const skillsChartConfig = {
-      skills: {
-        label: "Skills"
-      },
-      matched: {
-        label: "Matched",
-        color: "hsl(var(--chart-1))"
-      },
-      missing: {
-        label: "Missing",
-        color: "hsl(var(--chart-2))"
-      }
-  }
 
   return (
     <div className="space-y-6">
@@ -128,13 +151,52 @@ export default function AnalysisTab({
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>ATS Score</CardDescription>
-            <CardTitle className={`text-4xl ${getScoreColor(analysis.atsScore)}`}>{analysis.atsScore}<span className="text-lg text-muted-foreground">/100</span></CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-xs font-medium ${getScoreColor(analysis.atsScore)}`}>{getScoreStatus(analysis.atsScore)}</div>
-          </CardContent>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">ATS Score</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="h-[120px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                             <Tooltip
+                                cursor={false}
+                                content={<ChartTooltipContent hideLabel />}
+                            />
+                            <Pie
+                                data={atsChartData}
+                                dataKey="value"
+                                nameKey="name"
+                                innerRadius={35}
+                                outerRadius={50}
+                                strokeWidth={2}
+                            >
+                                <Label
+                                    content={({ viewBox }) => {
+                                        if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                                        return (
+                                            <text
+                                            x={viewBox.cx}
+                                            y={viewBox.cy}
+                                            textAnchor="middle"
+                                            dominantBaseline="middle"
+                                            >
+                                            <tspan
+                                                x={viewBox.cx}
+                                                y={viewBox.cy}
+                                                className="fill-foreground text-2xl font-bold"
+                                            >
+                                                {atsScore.toFixed(0)}
+                                            </tspan>
+                                            </text>
+                                        );
+                                        }
+                                    }}
+                                />
+                            </Pie>
+                        </PieChart>
+                    </ResponsiveContainer>
+                </div>
+            </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
@@ -142,7 +204,7 @@ export default function AnalysisTab({
             <CardTitle className="text-4xl">{presentKeywordsCount}<span className="text-lg text-muted-foreground">/{totalKeywords}</span></CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xs text-muted-foreground">{skillsMatchPercentage}% match</div>
+             <div className="text-xs text-muted-foreground">{skillsMatchPercentage}% match</div>
           </CardContent>
         </Card>
         <Card>
@@ -175,7 +237,6 @@ export default function AnalysisTab({
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Skills Analysis */}
         <div className="lg:col-span-3">
             <Card className="h-full">
                 <CardHeader>
@@ -204,66 +265,92 @@ export default function AnalysisTab({
             <Card className="h-full">
                  <CardHeader>
                     <CardTitle>Missing Skills ({missingKeywordsCount})</CardTitle>
-                    <CardDescription>Critical skills to add to your resume.</CardDescription>
+                    <CardDescription>Criticality of missing skills.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                        <div>
-                             {analysis.keywordAnalysis?.missingKeywords && analysis.keywordAnalysis.missingKeywords.length > 0 ? (
-                            <div className="space-y-2">
-                               {analysis.keywordAnalysis.missingKeywords.slice(0,5).map((item, index) => (
-                                <Badge key={index} variant={item.criticality === "Critical" || item.criticality === "High" ? "destructive" : "default"} className="flex items-center w-fit">
-                                    {getCriticalityIcon(item.criticality)}
-                                    <span>{item.skill} ({item.criticality})</span>
-                                </Badge>
-                                ))}
-                                {analysis.keywordAnalysis.missingKeywords.length > 5 && (
-                                    <p className="text-xs text-muted-foreground pt-2">+ {analysis.keywordAnalysis.missingKeywords.length - 5} more...</p>
-                                )}
-                            </div>
-                            ) : (
-                                <p className="text-sm text-muted-foreground">No skill gaps found. Great job!</p>
-                            )}
-                        </div>
-                        <div>
-                             <ChartContainer config={skillsChartConfig} className="mx-auto aspect-square w-full max-w-[250px]">
-                                <PieChart>
-                                    <Tooltip content={<ChartTooltipContent hideLabel nameKey="name" />} />
-                                    <Pie data={skillsChartData} dataKey="value" nameKey="name" innerRadius={50} strokeWidth={5}>
-                                        <Label
-                                            content={({ viewBox }) => {
-                                                if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                <CardContent className="flex justify-center items-center">
+                    {missingKeywordsCount > 0 ? (
+                        <ChartContainer
+                            config={criticalityChartConfig}
+                            className="mx-auto aspect-square h-[250px]"
+                        >
+                            <PieChart>
+                                <Tooltip
+                                    cursor={false}
+                                    content={<ChartTooltipContent hideLabel />}
+                                />
+                                <Pie
+                                    data={missingSkillsByCriticality}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    innerRadius={50}
+                                    strokeWidth={2}
+                                    labelLine={false}
+                                    label={({
+                                        cy,
+                                        midAngle,
+                                        innerRadius,
+                                        outerRadius,
+                                        value,
+                                        index,
+                                    }) => {
+                                        const RADIAN = Math.PI / 180;
+                                        const radius = 15 + innerRadius + (outerRadius - innerRadius);
+                                        const x = cy + radius * Math.cos(-midAngle * RADIAN);
+                                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+                                        return (
+                                            <text
+                                                x={x}
+                                                y={y}
+                                                className="fill-muted-foreground text-xs"
+                                                textAnchor={x > cy ? "start" : "end"}
+                                                dominantBaseline="central"
+                                            >
+                                                {missingSkillsByCriticality[index].name} ({value})
+                                            </text>
+                                        );
+                                    }}
+                                >
+                                     <Label
+                                        content={({ viewBox }) => {
+                                            if (viewBox && "cx" in viewBox && "cy" in viewBox) {
                                                 return (
                                                     <text
-                                                    x={viewBox.cx}
-                                                    y={viewBox.cy}
-                                                    textAnchor="middle"
-                                                    dominantBaseline="middle"
-                                                    >
-                                                    <tspan
                                                         x={viewBox.cx}
                                                         y={viewBox.cy}
-                                                        className="fill-foreground text-3xl font-bold"
+                                                        textAnchor="middle"
+                                                        dominantBaseline="middle"
                                                     >
-                                                        {skillsMatchPercentage.toFixed(0)}%
-                                                    </tspan>
-                                                    <tspan
-                                                        x={viewBox.cx}
-                                                        y={(viewBox.cy || 0) + 20}
-                                                        className="fill-muted-foreground"
-                                                    >
-                                                        Match
-                                                    </tspan>
+                                                        <tspan
+                                                            x={viewBox.cx}
+                                                            y={viewBox.cy}
+                                                            className="fill-foreground text-2xl font-bold"
+                                                        >
+                                                            {missingKeywordsCount}
+                                                        </tspan>
+                                                         <tspan
+                                                            x={viewBox.cx}
+                                                            y={(viewBox.cy || 0) + 20}
+                                                            className="fill-muted-foreground"
+                                                        >
+                                                            Missing
+                                                        </tspan>
                                                     </text>
                                                 );
-                                                }
-                                            }}
-                                            />
-                                    </Pie>
-                                </PieChart>
-                            </ChartContainer>
+                                            }
+                                        }}
+                                    />
+                                </Pie>
+                                <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                            </PieChart>
+                        </ChartContainer>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center text-center p-4">
+                            <CheckCircle className="h-12 w-12 text-green-500 mb-2" />
+                            <p className="text-sm font-medium">No Skill Gaps Found</p>
+                            <p className="text-xs text-muted-foreground">Great job! All skills match.</p>
                         </div>
-                    </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
@@ -363,5 +450,3 @@ export default function AnalysisTab({
     </div>
   );
 }
-
-    
