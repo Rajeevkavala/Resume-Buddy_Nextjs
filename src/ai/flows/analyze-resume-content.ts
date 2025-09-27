@@ -84,7 +84,7 @@ Analyze the resume on the following criteria and provide the output in a valid J
 4.  **Keyword and Skill Analysis**:
     *   Identify crucial keywords and skills from the job description.
     *   List the keywords that are present in the resume.
-    *   List the important keywords and skills that are missing from the resume. This list will be used for both `skillGaps` and `missingKeywords`.
+    *   List the important keywords and skills that are missing from the resume. This list will be used for both \`skillGaps\` and \`missingKeywords\`.
 5.  **Action Verb Feedback**: Analyze the use of action verbs. The feedback should be a paragraph that assesses the strength and variety of verbs used. If weak verbs are present (e.g., "Responsible for," "Helped with"), suggest stronger alternatives (e.g., "Managed," "Orchestrated," "Accelerated").
 6.  **Quantifiable Results Feedback**: Analyze how well the resume uses numbers and data to show impact. The feedback should be a paragraph explaining the importance of quantifying achievements. Provide 2-3 specific examples from the resume and show how they could be improved by adding metrics (e.g., "Increased sales" could become "Increased quarterly sales by 15% through strategic outreach campaigns").`,
 });
