@@ -11,14 +11,17 @@ import { useAuth } from '@/context/auth-context';
 import { Loader2 } from 'lucide-react';
 import { saveUserData } from '@/lib/local-storage';
 
+type Topic = "General" | "Technical" | "Work Experience" | "Projects" | "Career Goals" | "Education";
+
 export default function QAPage() {
   const { resumeText, jobDescription, qa, setQa, storedResumeText, storedJobDescription, loadDataFromCache } = useContext(ResumeContext);
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedTopic, setSelectedTopic] = useState<Topic>("General");
 
   const hasDataChanged = (resumeText && resumeText !== storedResumeText) || (jobDescription && jobDescription !== storedJobDescription);
 
-  const handleGeneration = async () => {
+  const handleGeneration = async (topic: Topic) => {
     if (!user) {
       toast.error('Authentication Error', { description: 'You must be logged in to generate Q&A.' });
       return;
@@ -32,7 +35,7 @@ export default function QAPage() {
 
     setIsLoading(true);
     setQa(null); // Clear previous Q&A data
-    const promise = runQAGenerationAction({ userId: user.uid, resumeText, jobDescription }).then((result) => {
+    const promise = runQAGenerationAction({ userId: user.uid, resumeText, jobDescription, topic }).then((result) => {
         setQa(result);
         saveUserData(user.uid, {
             qa: result,
@@ -63,9 +66,9 @@ export default function QAPage() {
     <main className="flex-1 p-4 md:p-8">
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline text-xl">Resume Q&A</CardTitle>
+          <CardTitle className="font-headline text-xl">Resume Q&A Generator</CardTitle>
           <CardDescription>
-            Generate potential questions and answers based on your resume.
+            Generate intelligent, context-aware question-and-answer pairs based on your resume.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -74,6 +77,8 @@ export default function QAPage() {
             onGenerate={handleGeneration}
             isLoading={isLoading}
             hasDataChanged={hasDataChanged}
+            selectedTopic={selectedTopic}
+            setSelectedTopic={setSelectedTopic}
           />
         </CardContent>
       </Card>
