@@ -11,7 +11,7 @@ import {Badge} from '@/components/ui/badge';
 import {Button} from './ui/button';
 import {Loader2, RefreshCw, CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
 import { Separator } from './ui/separator';
-import { PieChart, Pie, Label } from 'recharts';
+import { PieChart, Pie, Label, Tooltip } from 'recharts';
 import { Progress } from './ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from './ui/chart';
@@ -69,7 +69,7 @@ export default function AnalysisTab({
     return [
       { name: 'Critical', value: counts.Critical || 0, fill: 'hsl(var(--destructive))' },
       { name: 'High', value: counts.High || 0, fill: 'hsl(var(--chart-2))' },
-      { name: 'Medium', value: counts.Medium || 0, fill: 'hsl(var(--chart-3))' },
+      { name: 'Medium', value: counts.Medium || 0, fill: 'hsl(var(--chart-4))' },
       { name: 'Low', value: counts.Low || 0, fill: 'hsl(var(--chart-5))' },
     ].filter(item => item.value > 0);
 
@@ -89,7 +89,7 @@ export default function AnalysisTab({
     },
     Medium: {
       label: 'Medium',
-      color: 'hsl(var(--chart-3))',
+      color: 'hsl(var(--chart-4))',
     },
     Low: {
       label: 'Low',
@@ -144,15 +144,13 @@ export default function AnalysisTab({
       
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="text-center">
-            <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">ATS Score</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="h-[120px] flex items-center justify-center">
+        <Card>
+            <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
+                <CardTitle className="text-sm font-medium mb-2">ATS Score</CardTitle>
+                <div className="h-[120px] w-[120px] flex items-center justify-center">
                     <ChartContainer config={atsChartConfig} className="w-full h-full">
                         <PieChart>
-                             <ChartTooltip
+                            <ChartTooltip
                                 cursor={false}
                                 content={<ChartTooltipContent hideLabel />}
                             />
@@ -192,29 +190,23 @@ export default function AnalysisTab({
                 </div>
             </CardContent>
         </Card>
-        <Card className="text-center">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Skills Match</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center h-[120px]">
+        <Card>
+          <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
+            <CardTitle className="text-sm font-medium mb-2">Skills Match</CardTitle>
              <div className="text-4xl font-bold">{presentKeywordsCount}<span className="text-lg text-muted-foreground">/{totalKeywords}</span></div>
              <div className="text-xs text-muted-foreground">{skillsMatchPercentage}% match</div>
           </CardContent>
         </Card>
-        <Card className="text-center">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Coverage</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center h-[120px]">
+        <Card>
+          <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
+            <CardTitle className="text-sm font-medium mb-2">Coverage</CardTitle>
             <div className="text-4xl font-bold">{analysis.contentCoveragePercentage || 0}%</div>
             <div className="text-xs text-muted-foreground">Job description coverage</div>
           </CardContent>
         </Card>
-        <Card className="text-center">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Word Count</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center h-[120px]">
+        <Card>
+          <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
+            <CardTitle className="text-sm font-medium mb-2">Word Count</CardTitle>
             <div className="text-4xl font-bold">{analysis.qualityMetrics?.wordCount || 'N/A'}</div>
             <div className="text-xs text-muted-foreground">300-800 optimal</div>
           </CardContent>
@@ -457,4 +449,5 @@ export default function AnalysisTab({
     </div>
   );
 }
+
 
