@@ -92,7 +92,7 @@ const prompt = ai.definePrompt({
 {{#if previousAnalysis}}
 **Previous Analysis Data (for "before" scores):**
 \`\`\`json
-{{{json anysis=previousAnalysis}}}
+{{{JSON.stringify previousAnalysis}}}
 \`\`\`
 {{/if}}
 
