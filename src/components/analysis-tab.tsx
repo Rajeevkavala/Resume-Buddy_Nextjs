@@ -11,9 +11,10 @@ import {Badge} from '@/components/ui/badge';
 import {Button} from './ui/button';
 import {Loader2, RefreshCw, CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
 import { Separator } from './ui/separator';
-import { PieChart, Pie, Cell, ResponsiveContainer, Label } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Label, Legend, Tooltip } from 'recharts';
 import { Progress } from './ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { ChartContainer, ChartTooltipContent } from './ui/chart';
 
 interface AnalysisTabProps {
   analysis: AnalyzeResumeContentOutput | null;
@@ -91,7 +92,26 @@ export default function AnalysisTab({
   const presentKeywordsCount = analysis.keywordAnalysis?.presentKeywords?.length || 0;
   const missingKeywordsCount = analysis.keywordAnalysis?.missingKeywords?.length || 0;
   const totalKeywords = presentKeywordsCount + missingKeywordsCount;
-  const skillsMatch = totalKeywords > 0 ? Math.round((presentKeywordsCount / totalKeywords) * 100) : 0;
+  const skillsMatchPercentage = totalKeywords > 0 ? Math.round((presentKeywordsCount / totalKeywords) * 100) : 0;
+  
+  const skillsChartData = [
+    { name: 'Matched Skills', value: presentKeywordsCount, fill: 'hsl(var(--primary))' },
+    { name: 'Missing Skills', value: missingKeywordsCount, fill: 'hsl(var(--destructive))' },
+  ];
+
+  const skillsChartConfig = {
+      skills: {
+        label: "Skills"
+      },
+      matched: {
+        label: "Matched",
+        color: "hsl(var(--chart-1))"
+      },
+      missing: {
+        label: "Missing",
+        color: "hsl(var(--chart-2))"
+      }
+  }
 
   return (
     <div className="space-y-6">
@@ -106,7 +126,7 @@ export default function AnalysisTab({
         </div>
       
       {/* Metric Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>ATS Score</CardDescription>
@@ -122,13 +142,13 @@ export default function AnalysisTab({
             <CardTitle className="text-4xl">{presentKeywordsCount}<span className="text-lg text-muted-foreground">/{totalKeywords}</span></CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xs text-muted-foreground">{skillsMatch}% match</div>
+            <div className="text-xs text-muted-foreground">{skillsMatchPercentage}% match</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Coverage</CardDescription>
-            <CardTitle className="text-4xl">{analysis.contentCoveragePercentage}%</CardTitle>
+            <CardTitle className="text-4xl">{analysis.contentCoveragePercentage || 0}%</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-xs text-muted-foreground">Job description coverage</div>
@@ -140,7 +160,7 @@ export default function AnalysisTab({
             <CardTitle className="text-4xl">{analysis.qualityMetrics?.wordCount || 'N/A'}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xs text-muted-foreground">words (300-800 optimal)</div>
+            <div className="text-xs text-muted-foreground">300-800 optimal</div>
           </CardContent>
         </Card>
       </div>
@@ -154,16 +174,16 @@ export default function AnalysisTab({
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Skills Analysis */}
-        <div className="lg:col-span-2">
-            <Card>
+        <div className="lg:col-span-3">
+            <Card className="h-full">
                 <CardHeader>
                     <CardTitle>Skills Breakdown</CardTitle>
                     <CardDescription>Comparison of skills from the job description against your resume.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div>
+                   <div>
                         <h4 className="font-semibold mb-3 flex items-center"><CheckCircle className="mr-2 h-5 w-5 text-green-500" /> Matched Skills ({presentKeywordsCount})</h4>
                         {analysis.keywordAnalysis?.presentKeywords && analysis.keywordAnalysis.presentKeywords.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
@@ -177,33 +197,119 @@ export default function AnalysisTab({
                             <p className="text-sm text-muted-foreground">No matching keywords found.</p>
                         )}
                     </div>
-                    <Separator/>
-                    <div>
-                        <h4 className="font-semibold mb-3 flex items-center"><XCircle className="mr-2 h-5 w-5 text-red-500" /> Missing Skills ({missingKeywordsCount})</h4>
-                        {analysis.keywordAnalysis?.missingKeywords && analysis.keywordAnalysis.missingKeywords.length > 0 ? (
+                </CardContent>
+            </Card>
+        </div>
+         <div className="lg:col-span-2">
+            <Card className="h-full">
+                 <CardHeader>
+                    <CardTitle>Missing Skills ({missingKeywordsCount})</CardTitle>
+                    <CardDescription>Critical skills to add to your resume.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        <div>
+                             {analysis.keywordAnalysis?.missingKeywords && analysis.keywordAnalysis.missingKeywords.length > 0 ? (
                             <div className="space-y-2">
-                               {analysis.keywordAnalysis.missingKeywords.map((item, index) => (
+                               {analysis.keywordAnalysis.missingKeywords.slice(0,5).map((item, index) => (
                                 <Badge key={index} variant={item.criticality === "Critical" || item.criticality === "High" ? "destructive" : "default"} className="flex items-center w-fit">
                                     {getCriticalityIcon(item.criticality)}
                                     <span>{item.skill} ({item.criticality})</span>
                                 </Badge>
                                 ))}
+                                {analysis.keywordAnalysis.missingKeywords.length > 5 && (
+                                    <p className="text-xs text-muted-foreground pt-2">+ {analysis.keywordAnalysis.missingKeywords.length - 5} more...</p>
+                                )}
                             </div>
-                        ) : (
-                            <p className="text-sm text-muted-foreground">No skill gaps found. Great job!</p>
-                        )}
+                            ) : (
+                                <p className="text-sm text-muted-foreground">No skill gaps found. Great job!</p>
+                            )}
+                        </div>
+                        <div>
+                             <ChartContainer config={skillsChartConfig} className="mx-auto aspect-square w-full max-w-[250px]">
+                                <PieChart>
+                                    <Tooltip content={<ChartTooltipContent hideLabel nameKey="name" />} />
+                                    <Pie data={skillsChartData} dataKey="value" nameKey="name" innerRadius={50} strokeWidth={5}>
+                                        <Label
+                                            content={({ viewBox }) => {
+                                                if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                                                return (
+                                                    <text
+                                                    x={viewBox.cx}
+                                                    y={viewBox.cy}
+                                                    textAnchor="middle"
+                                                    dominantBaseline="middle"
+                                                    >
+                                                    <tspan
+                                                        x={viewBox.cx}
+                                                        y={viewBox.cy}
+                                                        className="fill-foreground text-3xl font-bold"
+                                                    >
+                                                        {skillsMatchPercentage.toFixed(0)}%
+                                                    </tspan>
+                                                    <tspan
+                                                        x={viewBox.cx}
+                                                        y={(viewBox.cy || 0) + 20}
+                                                        className="fill-muted-foreground"
+                                                    >
+                                                        Match
+                                                    </tspan>
+                                                    </text>
+                                                );
+                                                }
+                                            }}
+                                            />
+                                    </Pie>
+                                </PieChart>
+                            </ChartContainer>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
         </div>
-        {/* Quality Metrics */}
-        <div>
+      </div>
+      
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+         {analysis.industryCompatibility && analysis.industryCompatibility.length > 0 && (
+            <Card>
+                <CardHeader>
+                <CardTitle>Industry Compatibility</CardTitle>
+                <CardDescription>How your resume aligns with different industries.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Industry</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="text-right">Compatibility</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {analysis.industryCompatibility.map((item) => (
+                                <TableRow key={item.industry}>
+                                    <TableCell className="font-medium">{item.industry}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={item.status === 'High' || item.status === 'Good' ? 'secondary' : 'outline'}>
+                                            {item.status}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right font-bold">{item.score}/100</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+      )}
+
+       <div>
             <Card>
                 <CardHeader>
                     <CardTitle>Quality Factors</CardTitle>
                     <CardDescription>Assessment of your resume's content and structure.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 pt-4">
                     {analysis.qualityMetrics && (
                         <>
                         <div className="space-y-1">
@@ -233,39 +339,6 @@ export default function AnalysisTab({
             </Card>
         </div>
       </div>
-
-      {analysis.industryCompatibility && analysis.industryCompatibility.length > 0 && (
-        <Card>
-            <CardHeader>
-            <CardTitle>Industry Compatibility</CardTitle>
-            <CardDescription>How your resume aligns with different industries based on the job description.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Industry</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Compatibility Score</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {analysis.industryCompatibility.map((item) => (
-                            <TableRow key={item.industry}>
-                                <TableCell className="font-medium">{item.industry}</TableCell>
-                                <TableCell>
-                                    <Badge variant={item.status === 'High' || item.status === 'Good' ? 'secondary' : 'outline'}>
-                                        {item.status}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell className="text-right font-bold">{item.score}/100</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
-      )}
 
       <Card>
         <CardHeader>
