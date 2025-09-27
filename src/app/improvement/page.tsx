@@ -17,7 +17,7 @@ import { Loader2 } from 'lucide-react';
 import { saveUserData } from '@/lib/local-storage';
 
 export default function ImprovementPage() {
-  const { resumeText, jobDescription, improvements, setImprovements, storedResumeText, storedJobDescription, loadDataFromCache } = useContext(ResumeContext);
+  const { resumeText, jobDescription, improvements, analysis, setImprovements, storedResumeText, storedJobDescription, loadDataFromCache } = useContext(ResumeContext);
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -35,9 +35,21 @@ export default function ImprovementPage() {
       return;
     }
     
+    // If there's no analysis data, inform the user but still proceed.
+    if (!analysis) {
+        toast.info("For a more accurate 'before' forecast, run an analysis first.", {
+            description: "The AI will estimate the 'before' state for now.",
+        });
+    }
+
     setIsLoading(true);
     setImprovements(null); // Clear previous improvements
-    const promise = runImprovementsGenerationAction({ userId: user.uid, resumeText, jobDescription }).then((result) => {
+    const promise = runImprovementsGenerationAction({ 
+        userId: user.uid, 
+        resumeText, 
+        jobDescription,
+        previousAnalysis: analysis,
+    }).then((result) => {
         setImprovements(result);
         saveUserData(user.uid, {
             improvements: result,

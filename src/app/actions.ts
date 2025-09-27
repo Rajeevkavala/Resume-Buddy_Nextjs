@@ -12,6 +12,7 @@ import mammoth from 'mammoth';
 import pdf from 'pdf-parse-fork';
 import { saveData as saveToDb, clearData as clearFromDb } from '@/lib/firestore';
 import type { AnalysisResult } from '@/lib/types';
+import type { AnalyzeResumeContentOutput } from '@/ai/flows/analyze-resume-content';
 
 const baseSchema = z.object({
   userId: z.string().min(1, 'User ID is required.'),
@@ -145,12 +146,17 @@ export async function runImprovementsGenerationAction(input: {
   userId: string;
   resumeText: string;
   jobDescription: string;
+  previousAnalysis?: AnalyzeResumeContentOutput | null;
 }) {
   const validatedFields = baseSchema.safeParse(input);
   if (!validatedFields.success) {
     throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
   }
-  const improvements = await suggestResumeImprovements(validatedFields.data);
+  const improvements = await suggestResumeImprovements({
+    resumeText: validatedFields.data.resumeText,
+    jobDescription: validatedFields.data.jobDescription,
+    previousAnalysis: input.previousAnalysis || undefined,
+  });
   await saveToDb(input.userId, { improvements, resumeText: input.resumeText, jobDescription: input.jobDescription });
   return improvements;
 }

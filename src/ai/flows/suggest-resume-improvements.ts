@@ -11,6 +11,8 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { AnalyzeResumeContentOutputSchema } from './analyze-resume-content';
+
 
 const SuggestResumeImprovementsInputSchema = z.object({
   resumeText: z
@@ -20,6 +22,7 @@ const SuggestResumeImprovementsInputSchema = z.object({
     .string()
     .optional()
     .describe('The job description for tailoring the resume improvements.'),
+  previousAnalysis: AnalyzeResumeContentOutputSchema.optional().describe('The output from a previous run of the resume analyzer flow. Use this for the "before" values in the impact forecast.')
 });
 export type SuggestResumeImprovementsInput = z.infer<
   typeof SuggestResumeImprovementsInputSchema
@@ -81,16 +84,30 @@ const prompt = ai.definePrompt({
 \`\`\`
 {{/if}}
 
+{{#if previousAnalysis}}
+**Previous Analysis Data (for "before" scores):**
+\`\`\`json
+{{{json anysis=previousAnalysis}}}
+\`\`\`
+{{/if}}
+
+
 **Instructions:**
 
 Your output **must** be a valid JSON object that strictly adheres to the provided schema.
 
 1.  **Analyze and Rewrite:** Do not just edit; completely rewrite the resume for maximum impact. Reorganize sections if necessary. The final output must be the full, complete resume text in the \`improvedResumeText\` field.
 
-2.  **Generate an Impact Forecast (\`impactForecast\`):** Before you begin rewriting, analyze the original resume and estimate its current state. Then, estimate the impact of the changes you are about to make. Provide "before" and "after" numbers for:
-    *   \`atsScore\`: A percentage (0-100).
-    *   \`skillsMatch\`: A percentage (0-100), relevant only if a job description is provided.
-    *   \`quantifiedAchievements\`: The total count of bullet points containing specific, measurable results.
+2.  **Generate an Impact Forecast (\`impactForecast\`):**
+    *   **"Before" Scores**: Use the data from the \`previousAnalysis\` input for the 'before' scores.
+        *   For \`atsScore\`, use \`previousAnalysis.atsScore\`.
+        *   For \`skillsMatch\`, calculate the percentage of present keywords from \`previousAnalysis.keywordAnalysis\`.
+        *   For \`quantifiedAchievements\`, count the number of bullet points in the original resume that already contain numbers or percentages.
+    *   **If \`previousAnalysis\` is NOT provided, you must estimate these "before" values yourself.**
+    *   **"After" Scores**: Estimate the impact of the changes you are about to make and provide "after" numbers for:
+        *   \`atsScore\`: A percentage (0-100).
+        *   \`skillsMatch\`: A percentage (0-100), relevant only if a job description is provided.
+        *   \`quantifiedAchievements\`: The total count of bullet points containing specific, measurable results in your rewritten resume.
 
 3.  **Craft a Powerful Summary (\`improvementsSummary\`):** Write a concise summary (2-3 sentences) explaining the key changes you made. Highlight the most significant improvements, such as adding quantified metrics and integrating skills.
 
@@ -128,5 +145,3 @@ const suggestResumeImprovementsFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    
