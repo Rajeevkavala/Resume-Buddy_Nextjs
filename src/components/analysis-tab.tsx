@@ -10,10 +10,10 @@ import {Badge} from '@/components/ui/badge';
 import {Button} from './ui/button';
 import {Loader2, RefreshCw, CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
 import { Separator } from './ui/separator';
-import { PieChart, Pie, Cell, ResponsiveContainer, Label, Tooltip, Legend, RadialBarChart, RadialBar, PolarGrid } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Label, Tooltip as RechartsTooltip } from 'recharts';
 import { Progress } from './ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from './ui/chart';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from './ui/chart';
 import { useMemo } from 'react';
 
 
@@ -38,19 +38,6 @@ const getCriticalityIcon = (criticality: "Critical" | "High" | "Medium" | "Low")
       return null;
   }
 };
-
-const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-500";
-    if (score >= 60) return "text-yellow-500";
-    return "text-red-500";
-};
-
-const getScoreStatus = (score: number) => {
-    if (score >= 80) return "Excellent";
-    if (score >= 60) return "Good";
-    return "Needs Work";
-};
-
 
 export default function AnalysisTab({
   analysis,
@@ -108,7 +95,7 @@ export default function AnalysisTab({
       color: 'hsl(var(--chart-5))',
     },
   };
-
+  
 
   if (!analysis || hasDataChanged) {
     return (
@@ -130,6 +117,12 @@ export default function AnalysisTab({
     { name: 'Score', value: atsScore, fill: 'hsl(var(--primary))' },
     { name: 'Remaining', value: 100 - atsScore, fill: 'hsl(var(--muted))' },
   ];
+  const atsChartConfig = {
+      Score: {
+        label: "ATS Score",
+        color: "hsl(var(--primary))",
+      },
+  };
 
   const presentKeywordsCount = analysis.keywordAnalysis?.presentKeywords?.length || 0;
   const missingKeywordsCount = analysis.keywordAnalysis?.missingKeywords?.length || 0;
@@ -156,9 +149,9 @@ export default function AnalysisTab({
             </CardHeader>
             <CardContent>
                 <div className="h-[120px]">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ChartContainer config={atsChartConfig}>
                         <PieChart>
-                             <Tooltip
+                             <ChartTooltip
                                 cursor={false}
                                 content={<ChartTooltipContent hideLabel />}
                             />
@@ -194,7 +187,7 @@ export default function AnalysisTab({
                                 />
                             </Pie>
                         </PieChart>
-                    </ResponsiveContainer>
+                    </ChartContainer>
                 </div>
             </CardContent>
         </Card>
@@ -274,7 +267,7 @@ export default function AnalysisTab({
                             className="mx-auto aspect-square h-[250px]"
                         >
                             <PieChart>
-                                <Tooltip
+                                <ChartTooltip
                                     cursor={false}
                                     content={<ChartTooltipContent hideLabel />}
                                 />
@@ -356,8 +349,7 @@ export default function AnalysisTab({
         </div>
       </div>
       
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-         {analysis.industryCompatibility && analysis.industryCompatibility.length > 0 && (
+      {analysis.industryCompatibility && analysis.industryCompatibility.length > 0 && (
             <Card>
                 <CardHeader>
                 <CardTitle>Industry Compatibility</CardTitle>
@@ -390,14 +382,15 @@ export default function AnalysisTab({
             </Card>
       )}
 
-       <div>
+      {analysis.qualityMetrics && (
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
             <Card>
                 <CardHeader>
                     <CardTitle>Quality Factors</CardTitle>
                     <CardDescription>Assessment of your resume's content and structure.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 pt-4">
-                    {analysis.qualityMetrics && (
+                    
                         <>
                         <div className="space-y-1">
                             <div className="flex justify-between items-baseline">
@@ -421,32 +414,30 @@ export default function AnalysisTab({
                             <Progress value={analysis.qualityMetrics.readabilityScore} />
                         </div>
                         </>
-                    )}
+                    
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                <CardTitle>Detailed Feedback</CardTitle>
+                <CardDescription>
+                    Specific suggestions to improve your resume's content.
+                </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                <div>
+                    <h4 className="font-semibold mb-2">Action Verb Feedback</h4>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.actionVerbFeedback}</p>
+                </div>
+                <Separator />
+                <div>
+                    <h4 className="font-semibold mb-2">Quantifiable Results Feedback</h4>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.quantifiableResultsFeedback}</p>
+                </div>
                 </CardContent>
             </Card>
         </div>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Detailed Feedback</CardTitle>
-          <CardDescription>
-            Specific AI-generated suggestions to improve your resume's content.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h4 className="font-semibold mb-2">Action Verb Feedback</h4>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.actionVerbFeedback}</p>
-          </div>
-          <Separator />
-          <div>
-            <h4 className="font-semibold mb-2">Quantifiable Results Feedback</h4>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.quantifiableResultsFeedback}</p>
-          </div>
-        </CardContent>
-      </Card>
-      
+      )}
     </div>
   );
 }
