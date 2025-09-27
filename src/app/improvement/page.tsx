@@ -51,7 +51,12 @@ export default function ImprovementPage() {
     toast.promise(promise, {
       loading: 'Generating improvements...',
       success: () => 'Improvements generated successfully!',
-      error: (error) => error.message || 'An unexpected error occurred.',
+      error: (error) => {
+        if (error.message && error.message.includes('[503 Service Unavailable]')) {
+          return 'API call limit exceeded. Please try again later.';
+        }
+        return error.message || 'An unexpected error occurred.';
+      },
       finally: () => setIsLoading(false)
     });
   };
