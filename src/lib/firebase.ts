@@ -1,7 +1,7 @@
 
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
+import { getFirestore, enableMultiTabIndexedDbPersistence } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -15,8 +15,31 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+
+// Configure Auth with proper persistence for better user experience
 const auth = getAuth(app);
+
+// Set persistence to local for better performance and user experience
+if (typeof window !== 'undefined') {
+  setPersistence(auth, browserLocalPersistence).catch((error) => {
+    console.warn('Could not set auth persistence:', error);
+  });
+}
+
+// Configure Firestore with proper persistence for better performance
 const db = getFirestore(app);
+
+// Enable multi-tab IndexedDB persistence for better offline support
+if (typeof window !== 'undefined') {
+  enableMultiTabIndexedDbPersistence(db).catch((error) => {
+    if (error.code === 'failed-precondition') {
+      console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+    } else if (error.code === 'unimplemented') {
+      console.warn('The current browser does not support all features required for persistence.');
+    }
+  });
+}
+
 const storage = getStorage(app);
 
 export { app, auth, db, storage };

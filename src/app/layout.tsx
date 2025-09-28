@@ -1,11 +1,7 @@
 
 import type { Metadata } from 'next';
-import { ThemeProvider } from '@/components/theme-provider';
-import { Toaster } from '@/components/ui/sonner';
 import './globals.css';
-import { ResumeProvider } from '@/context/resume-context';
-import Navbar from '@/components/navbar';
-import { AuthProvider } from '@/context/auth-context';
+import ClientLayout from './client-layout';
 
 export const metadata: Metadata = {
   title: 'ResumeBuddy',
@@ -25,22 +21,9 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <AuthProvider>
-            <ResumeProvider>
-              <div className="flex min-h-screen w-full flex-col">
-                <Navbar />
-                {children}
-              </div>
-              <Toaster richColors />
-            </ResumeProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <ClientLayout>
+          {children}
+        </ClientLayout>
       </body>
     </html>
   );

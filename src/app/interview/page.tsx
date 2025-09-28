@@ -1,23 +1,57 @@
 'use client';
 
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect, startTransition } from 'react';
+import dynamic from 'next/dynamic';
 import type { GenerateInterviewQuestionsInput, GenerateInterviewQuestionsOutput } from '@/ai/flows/generate-interview-questions';
 import { runInterviewGenerationAction } from '@/app/actions';
 import { ResumeContext } from '@/context/resume-context';
 import { toast } from 'sonner';
-import InterviewTab from '@/components/interview-tab';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/auth-context';
-import { Loader2 } from 'lucide-react';
 import { saveUserData } from '@/lib/local-storage';
+import { 
+  InterviewLoading, 
+  PageLoadingOverlay,
+  LoadingSpinner 
+} from '@/components/loading-animations';
+import { InterviewSkeleton } from '@/components/ui/page-skeletons';
+
+// Dynamically import InterviewTab
+const InterviewTab = dynamic(() => import('@/components/interview-tab'), {
+  loading: () => <div className="space-y-4"><div className="h-8 bg-muted animate-pulse rounded" /><div className="h-64 bg-muted animate-pulse rounded" /></div>,
+  ssr: false,
+});
 
 export type InterviewType = "Technical" | "Behavioral" | "Leadership" | "General";
 export type DifficultyLevel = "Entry" | "Mid" | "Senior" | "Executive";
 
 export default function InterviewPage() {
-  const { resumeText, jobDescription, interview, setInterview, loadDataFromCache } = useContext(ResumeContext);
+  const { resumeText, jobDescription, interview, setInterview, updateStoredValues, isDataLoaded } = useContext(ResumeContext);
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(true);
+
+  // Handle page loading state - fixed logic
+  useEffect(() => {
+    // If auth is still loading, keep page loading
+    if (authLoading) {
+      setIsPageLoading(true);
+      return;
+    }
+
+    // If user is not authenticated, stop loading immediately
+    if (!user) {
+      setIsPageLoading(false);
+      return;
+    }
+
+    // If user is authenticated, wait for data to load, then add small delay
+    if (isDataLoaded) {
+      const timer = setTimeout(() => setIsPageLoading(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [authLoading, user, isDataLoaded]);
+
 
   const handleGeneration = async (config: Omit<GenerateInterviewQuestionsInput, 'resumeText' | 'jobDescription'>) => {
     // A numQuestions of -1 is a signal from the child to restart/clear the quiz
@@ -59,14 +93,14 @@ export default function InterviewPage() {
             resumeText,
             jobDescription,
         });
-        loadDataFromCache();
+        updateStoredValues(resumeText, jobDescription);
         return result;
     });
 
     toast.promise(promise, {
       loading: 'Generating interview quiz...',
       success: () => 'Interview quiz is ready!',
-      error: (error) => {
+      error: (error: any) => {
         if (error.message && error.message.includes('[503 Service Unavailable]')) {
           return 'API call limit exceeded. Please try again later.';
         }
@@ -76,16 +110,13 @@ export default function InterviewPage() {
     });
   };
   
-  if (authLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-80px)]">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+  // Show skeleton loading while page is loading or user not authenticated
+  if (isPageLoading || !user) {
+    return <InterviewSkeleton />;
   }
 
   return (
-    <main className="flex-1 p-4 md:p-8">
+    <div className="flex-1 p-4 md:p-8">
       <Card>
         <CardHeader>
           <CardTitle className="font-headline text-xl">AI-Powered Interview Quiz</CardTitle>
@@ -94,13 +125,17 @@ export default function InterviewPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <InterviewTab
-            interview={interview}
-            onGenerate={handleGeneration}
-            isLoading={isLoading}
-          />
+          {isLoading ? (
+            <InterviewLoading />
+          ) : (
+            <InterviewTab
+              interview={interview}
+              onGenerate={handleGeneration}
+              isLoading={isLoading}
+            />
+          )}
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

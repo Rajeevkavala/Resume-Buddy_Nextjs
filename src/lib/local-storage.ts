@@ -2,12 +2,14 @@
 'use client';
 
 import type { AnalysisResult } from './types';
+import { sanitizeDataForStorage, safeLocalStorage } from './secure-storage';
 
 const getLocalStorageKey = (userId: string) => `resume_buddy_user_${userId}`;
 
 /**
  * Saves user data to local storage, merging with existing data.
  * This function now handles dot notation for nested objects, like 'qa.General'.
+ * Automatically sanitizes data to prevent sensitive information storage.
  */
 export const saveUserData = (userId: string, dataToSave: Partial<AnalysisResult> & Record<string, any>) => {
   if (typeof window === 'undefined') return;
@@ -50,7 +52,11 @@ export const saveUserData = (userId: string, dataToSave: Partial<AnalysisResult>
 
     newData.updatedAt = new Date().toISOString();
     
-    localStorage.setItem(key, JSON.stringify(newData));
+    // Sanitize data before storing to remove sensitive information
+    const sanitizedData = sanitizeDataForStorage(newData);
+    
+    // Use secure localStorage wrapper
+    safeLocalStorage.setItem(key, JSON.stringify(sanitizedData));
   } catch (error) {
     console.error('Error saving data to local storage:', error);
   }
@@ -64,7 +70,8 @@ export const getUserData = (userId: string): AnalysisResult | null => {
 
   try {
     const key = getLocalStorageKey(userId);
-    const data = localStorage.getItem(key);
+    // Use secure localStorage wrapper
+    const data = safeLocalStorage.getItem(key);
     return data ? JSON.parse(data) : null;
   } catch (error) {
     console.error('Error retrieving data from local storage:', error);
@@ -80,9 +87,9 @@ export const clearUserData = (userId: string) => {
 
   try {
     const key = getLocalStorageKey(userId);
-    localStorage.removeItem(key);
-  } catch (error)
-    {
+    // Use secure localStorage wrapper
+    safeLocalStorage.removeItem(key);
+  } catch (error) {
     console.error('Error clearing data from local storage:', error);
   }
 };

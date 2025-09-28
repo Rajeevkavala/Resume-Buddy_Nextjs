@@ -1,27 +1,61 @@
 
 'use client';
 
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect, startTransition } from 'react';
+import dynamic from 'next/dynamic';
 import {
   runImprovementsGenerationAction,
   exportDocx,
-  exportPdf,
 } from '@/app/actions';
 import { ResumeContext } from '@/context/resume-context';
 import { toast } from 'sonner';
-import ImprovementsTab from '@/components/improvements-tab';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { saveAs } from 'file-saver';
 import { useAuth } from '@/context/auth-context';
-import { Loader2 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import { saveUserData } from '@/lib/local-storage';
+import { 
+  ImprovementLoading, 
+  PageLoadingOverlay,
+  LoadingSpinner 
+} from '@/components/loading-animations';
+import { ImprovementSkeleton } from '@/components/ui/page-skeletons';
+
+// Dynamically import ImprovementsTab
+const ImprovementsTab = dynamic(() => import('@/components/improvements-tab'), {
+  loading: () => <div className="space-y-4"><div className="h-8 bg-muted animate-pulse rounded" /><div className="h-64 bg-muted animate-pulse rounded" /></div>,
+  ssr: false,
+});
 
 export default function ImprovementPage() {
-  const { resumeText, jobDescription, improvements, analysis, setImprovements, storedResumeText, storedJobDescription, loadDataFromCache } = useContext(ResumeContext);
+  const { resumeText, jobDescription, improvements, analysis, setImprovements, storedResumeText, storedJobDescription, updateStoredValues, isDataLoaded } = useContext(ResumeContext);
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(true);
 
-  const hasDataChanged = (resumeText && resumeText !== storedResumeText) || (jobDescription && jobDescription !== storedJobDescription);
+  // Handle page loading state - fixed logic
+  useEffect(() => {
+    // If auth is still loading, keep page loading
+    if (authLoading) {
+      setIsPageLoading(true);
+      return;
+    }
+
+    // If user is not authenticated, stop loading immediately
+    if (!user) {
+      setIsPageLoading(false);
+      return;
+    }
+
+    // If user is authenticated, wait for data to load, then add small delay
+    if (isDataLoaded) {
+      const timer = setTimeout(() => setIsPageLoading(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [authLoading, user, isDataLoaded]);
+
+
+  const hasDataChanged = !!(resumeText && resumeText !== storedResumeText) || !!(jobDescription && jobDescription !== storedJobDescription);
 
   const handleGeneration = async () => {
     if (!user) {
@@ -56,14 +90,14 @@ export default function ImprovementPage() {
             resumeText,
             jobDescription,
         });
-        loadDataFromCache();
+        updateStoredValues(resumeText, jobDescription);
         return result;
     });
 
     toast.promise(promise, {
       loading: 'Generating improvements...',
       success: () => 'Improvements generated successfully!',
-      error: (error) => {
+      error: (error: any) => {
         if (error.message && error.message.includes('[503 Service Unavailable]')) {
           return 'API call limit exceeded. Please try again later.';
         }
@@ -73,27 +107,91 @@ export default function ImprovementPage() {
     });
   };
 
-  const handleExport = async (format: 'docx' | 'pdf') => {
+  // Client-side PDF export function
+  const exportPdfClient = (text: string): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        });
+
+        // Set font and size
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(12);
+
+        // Page dimensions and margins
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 20;
+        const maxLineWidth = pageWidth - 2 * margin;
+        const lineHeight = 7;
+        let yPosition = margin;
+
+        // Split text into lines
+        const lines = text.split('\n');
+
+        for (const line of lines) {
+          if (!line.trim()) {
+            // Empty line - add space
+            yPosition += lineHeight;
+            continue;
+          }
+
+          // Handle long lines by wrapping them
+          const wrappedLines = doc.splitTextToSize(line, maxLineWidth);
+          
+          for (const wrappedLine of wrappedLines) {
+            // Check if we need a new page
+            if (yPosition > pageHeight - margin) {
+              doc.addPage();
+              yPosition = margin;
+            }
+            
+            doc.text(wrappedLine, margin, yPosition);
+            yPosition += lineHeight;
+          }
+        }
+
+        // Convert to blob
+        const pdfBlob = doc.output('blob');
+        resolve(pdfBlob);
+      } catch (error) {
+        console.error('Client-side PDF generation error:', error);
+        reject(error);
+      }
+    });
+  };
+
+  const handleExport = async (format: 'docx' | 'pdf', filename?: string) => {
     if (!improvements?.improvedResumeText) return;
 
     const exportPromise = (async () => {
-      const exportFn = format === 'docx' ? exportDocx : exportPdf;
-      const base64Data = await exportFn(
-        improvements.improvedResumeText
-      );
-      const byteCharacters = atob(base64Data);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      try {
+        let blob: Blob;
+        
+        if (format === 'docx') {
+          const base64Data = await exportDocx(improvements.improvedResumeText);
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          blob = new Blob([byteArray], {
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          });
+        } else {
+          // Use client-side PDF generation
+          blob = await exportPdfClient(improvements.improvedResumeText);
+        }
+        
+        saveAs(blob, filename || `improved-resume.${format}`);
+      } catch (error) {
+        console.error(`Error exporting ${format}:`, error);
+        throw error;
       }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], {
-        type:
-          format === 'docx'
-            ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-            : 'application/pdf',
-      });
-      saveAs(blob, `improved-resume.${format}`);
     })();
 
     toast.promise(exportPromise, {
@@ -103,16 +201,13 @@ export default function ImprovementPage() {
     });
   };
 
-  if (authLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-80px)]">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+  // Show skeleton loading while page is loading or user not authenticated
+  if (isPageLoading || !user) {
+    return <ImprovementSkeleton />;
   }
 
   return (
-    <main className="flex-1 p-4 md:p-8">
+    <div className="flex-1 p-4 md:p-8">
       <Card>
         <CardHeader>
           <CardTitle className="font-headline text-xl">Resume Improvement</CardTitle>
@@ -121,16 +216,20 @@ export default function ImprovementPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ImprovementsTab
-            improvements={improvements}
-            originalResume={resumeText}
-            onExport={handleExport}
-            onGenerate={handleGeneration}
-            isLoading={isLoading}
-            hasDataChanged={hasDataChanged}
-          />
+          {isLoading ? (
+            <ImprovementLoading />
+          ) : (
+            <ImprovementsTab
+              improvements={improvements}
+              originalResume={resumeText}
+              onExport={handleExport}
+              onGenerate={handleGeneration}
+              isLoading={isLoading}
+              hasDataChanged={hasDataChanged}
+            />
+          )}
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

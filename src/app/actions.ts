@@ -8,7 +8,6 @@ import {generateInterviewQuestions} from '@/ai/flows/generate-interview-question
 import {generateResumeQA} from '@/ai/flows/generate-resume-qa';
 import {suggestResumeImprovements} from '@/ai/flows/suggest-resume-improvements';
 import {Packer, Document, Paragraph, TextRun} from 'docx';
-import PDFDocument from 'pdfkit';
 import mammoth from 'mammoth';
 import pdf from 'pdf-parse-fork';
 import { saveData as saveToDb, clearData as clearFromDb, updateUserProfileInDb } from '@/lib/firestore';
@@ -165,19 +164,10 @@ export async function runImprovementsGenerationAction(input: {
 
 export async function updateUserProfile(userId: string, formData: FormData): Promise<{ displayName: string; photoURL?: string }> {
   const displayName = formData.get('displayName') as string;
-  const photoFile = formData.get('photoURL') as File | null;
+  const photoURL = formData.get('photoURL') as string | null; // Now expecting the URL from client-side Supabase upload
 
   if (!userId) {
     throw new Error('User ID is required.');
-  }
-
-  let photoURL: string | undefined = undefined;
-
-  if (photoFile && photoFile.size > 0) {
-    const storage = getStorage();
-    const storageRef = ref(storage, `profile-pictures/${userId}/${photoFile.name}`);
-    const snapshot = await uploadBytes(storageRef, photoFile);
-    photoURL = await getDownloadURL(snapshot.ref);
   }
 
   const profileData: { displayName?: string; photoURL?: string } = {};
@@ -194,7 +184,7 @@ export async function updateUserProfile(userId: string, formData: FormData): Pro
 
   return {
     displayName: displayName,
-    photoURL: photoURL,
+    photoURL: photoURL || undefined,
   };
 }
 
@@ -216,26 +206,4 @@ export async function exportDocx(text: string) {
   return buffer.toString('base64');
 }
 
-export async function exportPdf(text: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({
-      margins: {
-        top: 72,
-        bottom: 72,
-        left: 72,
-        right: 72,
-      },
-    });
-    const buffers: any[] = [];
-    doc.on('data', buffers.push.bind(buffers));
-    doc.on('end', () => {
-      const pdfData = Buffer.concat(buffers);
-      resolve(pdfData.toString('base64'));
-    });
-    doc.on('error', reject);
-    doc.font('Helvetica').fontSize(12).text(text, {
-      align: 'left',
-    });
-    doc.end();
-  });
-}
+// Server-side PDF export removed - now using client-side jsPDF in improvement page

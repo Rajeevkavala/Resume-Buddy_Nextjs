@@ -1,23 +1,57 @@
 
 'use client';
 
-import { useState, useContext, useEffect } from 'react';
+import { useState, useContext, useEffect, Suspense, startTransition } from 'react';
+import dynamic from 'next/dynamic';
 import { runAnalysisAction } from '@/app/actions';
 import { ResumeContext } from '@/context/resume-context';
 import { toast } from 'sonner';
-import AnalysisTab from '@/components/analysis-tab';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/auth-context';
-import { Loader2 } from 'lucide-react';
 import { saveUserData } from '@/lib/local-storage';
+import { 
+  AnalysisLoading, 
+  PageLoadingOverlay,
+  LoadingSpinner 
+} from '@/components/loading-animations';
+import { AnalysisSkeleton } from '@/components/ui/page-skeletons';
+
+// Dynamically import heavy components
+const AnalysisTab = dynamic(() => import('@/components/analysis-tab'), {
+  loading: () => <div className="space-y-4"></div>,
+  ssr: false,
+});
 
 export default function AnalysisPage() {
-  const { resumeText, jobDescription, analysis, setAnalysis, storedResumeText, storedJobDescription, loadDataFromCache } = useContext(ResumeContext);
+  const { resumeText, jobDescription, analysis, setAnalysis, storedResumeText, storedJobDescription, updateStoredValues, isDataLoaded } = useContext(ResumeContext);
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(true);
+
+  // Handle page loading state - fixed logic
+  useEffect(() => {
+    // If auth is still loading, keep page loading
+    if (authLoading) {
+      setIsPageLoading(true);
+      return;
+    }
+
+    // If user is not authenticated, stop loading immediately
+    if (!user) {
+      setIsPageLoading(false);
+      return;
+    }
+
+    // If user is authenticated, wait for data to load, then add small delay
+    if (isDataLoaded) {
+      const timer = setTimeout(() => setIsPageLoading(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [authLoading, user, isDataLoaded]);
+
 
   // Data now comes from context, which is loaded from local storage
-  const hasDataChanged = (resumeText && resumeText !== storedResumeText) || (jobDescription && jobDescription !== storedJobDescription);
+  const hasDataChanged = !!(resumeText && resumeText !== storedResumeText) || !!(jobDescription && jobDescription !== storedJobDescription);
 
   const handleGeneration = async () => {
     if (!user) {
@@ -37,21 +71,25 @@ export default function AnalysisPage() {
     setAnalysis(null); // Clear previous analysis
 
     const promise = runAnalysisAction({ userId: user.uid, resumeText, jobDescription }).then((result) => {
-        setAnalysis(result);
-        // On success, update local storage and then reload context
-        saveUserData(user.uid, {
-          analysis: result,
-          resumeText,
-          jobDescription,
+        startTransition(() => {
+          setAnalysis(result);
+          // Update local storage asynchronously
+          Promise.resolve().then(() => {
+            saveUserData(user.uid, {
+              analysis: result,
+              resumeText,
+              jobDescription,
+            });
+            updateStoredValues(resumeText, jobDescription); // Update stored values efficiently
+          });
         });
-        loadDataFromCache(); // This will update storedResumeText and storedJobDescription
         return result;
     });
 
     toast.promise(promise, {
       loading: 'Analyzing your resume...',
       success: () => 'Analysis Complete!',
-      error: (error) => {
+      error: (error: any) => {
         if (error.message && error.message.includes('[503 Service Unavailable]')) {
           return 'API call limit exceeded. Please try again later.';
         }
@@ -61,16 +99,13 @@ export default function AnalysisPage() {
     });
   };
 
-  if (authLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-80px)]">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+  // Show skeleton loading while page is loading or user not authenticated
+  if (isPageLoading || !user) {
+    return <AnalysisSkeleton />;
   }
 
   return (
-    <main className="flex-1 p-4 md:p-8">
+    <div className="flex-1 p-4 md:p-8">
       <Card>
         <CardHeader>
           <CardTitle className="font-headline text-xl">Resume Analysis</CardTitle>
@@ -79,14 +114,18 @@ export default function AnalysisPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <AnalysisTab
-            analysis={analysis}
-            onGenerate={handleGeneration}
-            isLoading={isLoading}
-            hasDataChanged={hasDataChanged}
-          />
+          {isLoading ? (
+            <AnalysisLoading />
+          ) : (
+            <AnalysisTab
+              analysis={analysis}
+              onGenerate={handleGeneration}
+              isLoading={isLoading}
+              hasDataChanged={hasDataChanged}
+            />
+          )}
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

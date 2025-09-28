@@ -1,24 +1,50 @@
 'use client';
 
-import { useState, useContext } from 'react';
+import { useState, useContext, startTransition, useEffect } from 'react';
 import { runQAGenerationAction } from '@/app/actions';
 import { ResumeContext } from '@/context/resume-context';
 import { toast } from 'sonner';
-import QATab from '@/components/qa-tab';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/auth-context';
-import { Loader2 } from 'lucide-react';
 import { saveUserData } from '@/lib/local-storage';
+import QATab from '@/components/qa-tab';
+import { 
+  QALoading, 
+  PageLoadingOverlay,
+  LoadingSpinner 
+} from '@/components/loading-animations';
+import { QASkeleton } from '@/components/ui/page-skeletons';
 
 type Topic = "General" | "Technical" | "Work Experience" | "Projects" | "Career Goals" | "Education";
 
 export default function QAPage() {
-  const { resumeText, jobDescription, qa, setQa, storedResumeText, storedJobDescription, loadDataFromCache } = useContext(ResumeContext);
+  const { resumeText, jobDescription, qa, setQa, storedResumeText, storedJobDescription, updateStoredValues, isDataLoaded } = useContext(ResumeContext);
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(true);
   const [selectedTopic, setSelectedTopic] = useState<Topic>("General");
 
-  const hasDataChanged = (resumeText && resumeText !== storedResumeText) || (jobDescription && jobDescription !== storedJobDescription);
+  // Handle page loading state
+  useEffect(() => {
+    if (authLoading) {
+      setIsPageLoading(true);
+      return;
+    }
+
+    if (!user) {
+      setIsPageLoading(false);
+      return;
+    }
+
+    if (isDataLoaded) {
+      const timer = setTimeout(() => setIsPageLoading(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [authLoading, user, isDataLoaded]);
+
+
+
+  const hasDataChanged = !!(resumeText && resumeText !== storedResumeText) || !!(jobDescription && jobDescription !== storedJobDescription);
 
   const handleGeneration = async (topic: Topic, numQuestions: number) => {
     if (!user) {
@@ -48,7 +74,7 @@ export default function QAPage() {
             resumeText,
             jobDescription,
         });
-        loadDataFromCache();
+        updateStoredValues(resumeText, jobDescription);
         return result;
     });
 
@@ -65,16 +91,13 @@ export default function QAPage() {
     });
   };
 
-  if (authLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-80px)]">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+  // Show skeleton loading while page is loading or user not authenticated
+  if (isPageLoading || !user) {
+    return <QASkeleton />;
   }
 
   return (
-    <main className="flex-1 p-4 md:p-8">
+    <div className="flex-1 p-4 md:p-8">
       <Card>
         <CardHeader>
           <CardTitle className="font-headline text-xl">Resume Q&A Generator</CardTitle>
@@ -83,16 +106,20 @@ export default function QAPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <QATab
-            qa={qa}
-            onGenerate={handleGeneration}
-            isLoading={isLoading}
-            hasDataChanged={hasDataChanged}
-            selectedTopic={selectedTopic}
-            setSelectedTopic={setSelectedTopic}
-          />
+          {isLoading ? (
+            <QALoading />
+          ) : (
+            <QATab
+              qa={qa}
+              onGenerate={handleGeneration}
+              isLoading={isLoading}
+              hasDataChanged={hasDataChanged}
+              selectedTopic={selectedTopic}
+              setSelectedTopic={setSelectedTopic}
+            />
+          )}
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }
