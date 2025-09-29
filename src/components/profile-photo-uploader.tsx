@@ -153,7 +153,7 @@ export function ProfilePhotoUploader({
       <div className="flex items-center gap-6">
         {/* Avatar Display */}
         <Avatar className="h-24 w-24 ring-2 ring-border">
-          <AvatarImage src={displayPhotoUrl || ''} alt={userName || 'Profile'} />
+          {displayPhotoUrl && <AvatarImage src={displayPhotoUrl} alt={userName || 'Profile'} />}
           <AvatarFallback className="text-2xl font-semibold">
             {getInitials(userName)}
           </AvatarFallback>

@@ -21,15 +21,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { ResumeContext } from '@/context/resume-context';
 import { Button } from '@/components/ui/button';
 import { extractText, saveData, clearData } from '../actions';
 import { toast } from 'sonner';
-import { Save, Trash2 } from 'lucide-react';
+import { Save, Trash2, FileText, Briefcase, Link, CheckCircle, AlertCircle, Upload, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { saveUserData, clearUserData as clearLocalData } from '@/lib/local-storage';
 import FileUploader from '@/components/file-uploader';
+import { RoleSelector } from '@/components/role-selector';
+import { JobUrlInput } from '@/components/job-url-input';
+import { EnhancedJobDescriptionInput } from '@/components/enhanced-job-description-input';
 import { 
   DashboardLoading, 
   FileProcessingLoading, 
@@ -44,6 +48,10 @@ export default function Dashboard() {
     setResumeText,
     jobDescription,
     setJobDescription,
+    jobRole,
+    setJobRole,
+    jobUrl,
+    setJobUrl,
     resumeFile,
     setResumeFile,
     updateStoredValues,
@@ -109,7 +117,7 @@ export default function Dashboard() {
       toast.error('You must be logged in to save data.');
       return;
     }
-    if (!resumeText && !jobDescription) {
+    if (!resumeText && !jobDescription && !jobRole && !jobUrl) {
       toast.error('There is no data to save.');
       return;
     }
@@ -120,6 +128,8 @@ export default function Dashboard() {
     const dataToSave = { 
       resumeText, 
       jobDescription,
+      jobRole: jobRole || undefined,
+      jobUrl: jobUrl || undefined,
       analysis: null,
       qa: null,
       interview: null,
@@ -130,7 +140,7 @@ export default function Dashboard() {
       // Also update local storage, which will clear the old results
       saveUserData(user.uid, dataToSave);
       // Update stored values efficiently without reloading
-      updateStoredValues(resumeText, jobDescription);
+      updateStoredValues(resumeText, jobDescription, jobRole, jobUrl);
     });
 
     toast.promise(promise, {
@@ -155,9 +165,11 @@ export default function Dashboard() {
       // And clear local component state
       setResumeText('');
       setJobDescription('');
+      setJobRole('');
+      setJobUrl('');
       setResumeFile(null);
       // Update stored values to reflect the cleared state
-      updateStoredValues('', '');
+      updateStoredValues('', '', '', '');
     });
 
     toast.promise(promise, {
@@ -180,27 +192,99 @@ export default function Dashboard() {
     return <DashboardSkeleton />;
   }
 
+  // Calculate completion status
+  const completionSteps = [
+    { name: 'Resume Upload', completed: !!resumeFile || !!resumeText, icon: Upload },
+    { name: 'Resume Processing', completed: !!resumeText, icon: FileText },
+    { name: 'Job Role', completed: !!jobRole, icon: Briefcase },
+    { name: 'Job Description', completed: !!jobDescription, icon: Link },
+  ];
+  
+  const completedSteps = completionSteps.filter(step => step.completed).length;
+  const progressPercentage = (completedSteps / completionSteps.length) * 100;
+
   return (
     <div className="flex-1 p-4 md:p-8">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle className="font-headline text-2xl">Dashboard</CardTitle>
-              <CardDescription>
-                Upload your resume, paste the job description, and then save your data.
-              </CardDescription>
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="text-center space-y-4">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium">
+            <Sparkles className="w-4 h-4" />
+            AI-Powered Career Assistant
+          </div>
+          <h1 className="font-headline text-4xl md:text-5xl font-bold">
+            Dashboard
+          </h1>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
+            Upload your resume, select your target role, and get personalized AI insights to advance your career.
+          </p>
+        </div>
+
+        {/* Progress Section */}
+        <Card>
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Setup Progress</CardTitle>
+                <CardDescription>Complete all steps to unlock AI analysis</CardDescription>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-primary">{completedSteps}/4</div>
+                <div className="text-sm text-muted-foreground">Steps Complete</div>
+              </div>
             </div>
-            {(resumeText || jobDescription) && (
-               <div className="flex gap-2 mt-4 sm:mt-0">
-                {/* Save Data Confirmation Dialog */}
+            <div className="w-full bg-muted rounded-full h-2 mt-4">
+              <div 
+                className="bg-primary h-2 rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${progressPercentage}%` }}
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {completionSteps.map((step, index) => (
+                <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                  <div className={`p-2 rounded-full ${
+                    step.completed 
+                      ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' 
+                      : 'bg-muted text-muted-foreground'
+                  }`}>
+                    {step.completed ? (
+                      <CheckCircle className="w-4 h-4" />
+                    ) : (
+                      <step.icon className="w-4 h-4" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-sm font-medium ${
+                      step.completed ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'
+                    }`}>
+                      {step.name}
+                    </div>
+                    <div className={`text-xs ${
+                      step.completed ? 'text-green-600 dark:text-green-500' : 'text-muted-foreground/70'
+                    }`}>
+                      {step.completed ? 'Complete' : 'Pending'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Action Buttons - Show when data exists */}
+        {(resumeText || jobDescription || jobRole || jobUrl) && (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button disabled={isSaving}>
+                    <Button size="lg" disabled={isSaving} className="min-w-[140px]">
                       {isSaving ? (
                         <LoadingSpinner size="sm" />
                       ) : (
-                        <Save className="mr-2" />
+                        <Save className="mr-2 w-4 h-4" />
                       )}
                       {isSaving ? 'Saving...' : 'Save Data'}
                     </Button>
@@ -223,12 +307,11 @@ export default function Dashboard() {
                   </AlertDialogContent>
                 </AlertDialog>
 
-                {/* Clear Data Confirmation Dialog */}
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive">
-                      <Trash2 className="mr-2" />
-                      Clear Data
+                    <Button variant="destructive" size="lg" className="min-w-[140px]">
+                      <Trash2 className="mr-2 w-4 h-4" />
+                      Clear All
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -252,65 +335,149 @@ export default function Dashboard() {
                   </AlertDialogContent>
                 </AlertDialog>
               </div>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="resume-upload" className="font-semibold">
-                  Your Resume
-                </Label>
-                <FileUploader
-                  file={resumeFile}
-                  setFile={setResumeFile}
-                  setPreview={setResumeText}
-                />
-              </div>
-              {resumeFile && !resumeText && !isLoading && (
-                <Button
-                  onClick={handleProcessResume}
-                  disabled={isLoading}
-                  className="w-full"
-                >
-                  Process Resume
-                </Button>
-              )}
-              {isLoading && (
-                <FileProcessingLoading fileName={resumeFile?.name} />
-              )}
-              {resumeText && (
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Main Content */}
+        <div className="space-y-8">
+          {/* Job Information Section */}
+          <Card className="hover:shadow-lg transition-shadow duration-300">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Briefcase className="w-5 h-5" />
+                Job Information
+              </CardTitle>
+              <CardDescription>Define your target role and job requirements</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label className="font-semibold">Extracted Text</Label>
-                  <Textarea
-                    id="resumeText"
-                    name="resumeText"
-                    placeholder="Extracted text will appear here..."
-                    className="min-h-[300px] text-sm bg-muted/50"
-                    value={resumeText}
-                    onChange={e => setResumeText(e.target.value)}
+                  <Label className="text-sm font-medium">Target Role</Label>
+                  <RoleSelector
+                    value={jobRole}
+                    onValueChange={setJobRole}
                   />
                 </div>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="jobDescription" className="font-semibold">
-                Job Description
-              </Label>
-              <Textarea
-                id="jobDescription"
-                name="jobDescription"
-                placeholder="Paste the job description here..."
-                className="min-h-[400px] text-sm"
-                value={jobDescription}
-                onChange={e => setJobDescription(e.target.value)}
-                required
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Job URL (Optional)</Label>
+                  <JobUrlInput
+                    value={jobUrl}
+                    onChange={setJobUrl}
+                    onJobDescriptionExtracted={setJobDescription}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Main Content Section */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            {/* Resume Section */}
+            <Card className="hover:shadow-lg transition-shadow duration-300">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Your Resume
+                </CardTitle>
+                <CardDescription>Upload and process your resume document</CardDescription>
+              </CardHeader>
+              <CardContent className="p-6 space-y-6">
+                <div className="space-y-4">
+                  <FileUploader
+                    file={resumeFile}
+                    setFile={setResumeFile}
+                    setPreview={setResumeText}
+                  />
+                  
+                  {resumeFile && !resumeText && !isLoading && (
+                    <Button
+                      onClick={handleProcessResume}
+                      disabled={isLoading}
+                      className="w-full"
+                      size="lg"
+                    >
+                      <FileText className="mr-2 w-4 h-4" />
+                      Process Resume
+                    </Button>
+                  )}
+                  
+                  {isLoading && (
+                    <div className="space-y-4">
+                      <FileProcessingLoading fileName={resumeFile?.name} />
+                    </div>
+                  )}
+                  
+                  {resumeText && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Label className="font-medium">Extracted Text</Label>
+                        <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Processed
+                        </Badge>
+                      </div>
+                      <Textarea
+                        id="resumeText"
+                        name="resumeText"
+                        placeholder="Extracted text will appear here..."
+                        className="min-h-[300px] text-sm bg-muted/50"
+                        value={resumeText}
+                        onChange={e => setResumeText(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Job Description Section */}
+            <Card className="hover:shadow-lg transition-shadow duration-300">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Link className="w-5 h-5" />
+                  Job Description
+                </CardTitle>
+                <CardDescription>Paste or enhance the target job description</CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                <EnhancedJobDescriptionInput
+                  value={jobDescription}
+                  onChange={setJobDescription}
+                  jobRole={jobRole}
+                />
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Ready for Analysis Banner */}
+          {resumeText && jobDescription && (
+            <Card className="border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
+                      <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-green-900 dark:text-green-100">Ready for AI Analysis!</h3>
+                      <p className="text-green-700 dark:text-green-300 text-sm">
+                        Your resume and job description are ready. Navigate to analysis pages to get insights.
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={() => router.push('/analysis')}
+                    className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-600"
+                  >
+                    Start Analysis
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

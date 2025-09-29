@@ -4,7 +4,7 @@
 import { createContext, useState, ReactNode, Dispatch, SetStateAction, useEffect, startTransition, useCallback } from 'react';
 import { getUserData } from '@/lib/local-storage';
 import { useAuth } from './auth-context';
-import type { AnalysisResult, QATopic } from '@/lib/types';
+import type { AnalysisResult, QATopic, JobRole } from '@/lib/types';
 import type { GenerateInterviewQuestionsOutput } from '@/ai/flows/generate-interview-questions';
 import type { GenerateResumeQAOutput } from '@/ai/flows/generate-resume-qa';
 import type { AnalyzeResumeContentOutput } from '@/ai/flows/analyze-resume-content';
@@ -15,6 +15,10 @@ interface ResumeContextType {
   setResumeText: (text: string) => void;
   jobDescription: string;
   setJobDescription: (text: string) => void;
+  jobRole: JobRole | '';
+  setJobRole: (role: JobRole | '') => void;
+  jobUrl: string;
+  setJobUrl: (url: string) => void;
   resumeFile: File | null;
   setResumeFile: Dispatch<SetStateAction<File | null>>;
   analysis: AnalyzeResumeContentOutput | null;
@@ -23,13 +27,15 @@ interface ResumeContextType {
   qa: Record<QATopic, GenerateResumeQAOutput | null> | null;
   storedResumeText?: string;
   storedJobDescription?: string;
+  storedJobRole?: JobRole | '';
+  storedJobUrl?: string;
   setAnalysis: (data: AnalyzeResumeContentOutput | null) => void;
   setImprovements: (data: SuggestResumeImprovementsOutput | null) => void;
   setInterview: (data: GenerateInterviewQuestionsOutput | null) => void;
   setQa: (data: Record<QATopic, GenerateResumeQAOutput | null> | null) => void;
   loadDataFromCache: () => void;
   forceReloadData: () => void;
-  updateStoredValues: (resumeText?: string, jobDescription?: string) => void;
+  updateStoredValues: (resumeText?: string, jobDescription?: string, jobRole?: JobRole | '', jobUrl?: string) => void;
   isDataLoaded: boolean;
   hasAnyData: boolean;
 }
@@ -39,6 +45,10 @@ export const ResumeContext = createContext<ResumeContextType>({
   setResumeText: () => {},
   jobDescription: '',
   setJobDescription: () => {},
+  jobRole: '',
+  setJobRole: () => {},
+  jobUrl: '',
+  setJobUrl: () => {},
   resumeFile: null,
   setResumeFile: () => {},
   analysis: null,
@@ -60,6 +70,8 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [resumeText, setResumeText] = useState('');
   const [jobDescription, setJobDescription] = useState('');
+  const [jobRole, setJobRole] = useState<JobRole | ''>('');
+  const [jobUrl, setJobUrl] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [analysis, setAnalysis] = useState<AnalyzeResumeContentOutput | null>(null);
   const [improvements, setImprovements] = useState<SuggestResumeImprovementsOutput | null>(null);
@@ -68,12 +80,16 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
   
   const [storedResumeText, setStoredResumeText] = useState<string | undefined>('');
   const [storedJobDescription, setStoredJobDescription] = useState<string | undefined>('');
+  const [storedJobRole, setStoredJobRole] = useState<JobRole | '' | undefined>('');
+  const [storedJobUrl, setStoredJobUrl] = useState<string | undefined>('');
   const [lastLoadedUserId, setLastLoadedUserId] = useState<string | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(true); // Start as true to prevent loading delays
 
   const resetState = useCallback(() => {
     setResumeText('');
     setJobDescription('');
+    setJobRole('');
+    setJobUrl('');
     setResumeFile(null);
     setAnalysis(null);
     setImprovements(null);
@@ -81,6 +97,8 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
     setQa(null);
     setStoredResumeText('');
     setStoredJobDescription('');
+    setStoredJobRole('');
+    setStoredJobUrl('');
     setLastLoadedUserId(null);
     // Don't set isDataLoaded to false here - it should remain true after initial load attempt
   }, []);
@@ -96,16 +114,22 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
           if (data) {
             setResumeText(data.resumeText || '');
             setJobDescription(data.jobDescription || '');
+            setJobRole(data.jobRole || '');
+            setJobUrl(data.jobUrl || '');
             setAnalysis(data.analysis || null);
             setImprovements(data.improvements || null);
             setInterview(data.interview || null);
             setQa(data.qa || null);
             setStoredResumeText(data.resumeText);
             setStoredJobDescription(data.jobDescription);
+            setStoredJobRole(data.jobRole);
+            setStoredJobUrl(data.jobUrl);
           } else {
             // Clear state for users with no data
             setResumeText('');
             setJobDescription('');
+            setJobRole('');
+            setJobUrl('');
             setResumeFile(null);
             setAnalysis(null);
             setImprovements(null);
@@ -113,6 +137,8 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
             setQa(null);
             setStoredResumeText('');
             setStoredJobDescription('');
+            setStoredJobRole('');
+            setStoredJobUrl('');
           }
           setLastLoadedUserId(user.uid);
         });
@@ -172,12 +198,18 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
     };
   }, [user, loadDataFromCache, forceReloadData, resetState]);
 
-  const updateStoredValues = useCallback((newResumeText?: string, newJobDescription?: string) => {
+  const updateStoredValues = useCallback((newResumeText?: string, newJobDescription?: string, newJobRole?: JobRole | '', newJobUrl?: string) => {
     if (newResumeText !== undefined) {
       setStoredResumeText(newResumeText);
     }
     if (newJobDescription !== undefined) {
       setStoredJobDescription(newJobDescription);
+    }
+    if (newJobRole !== undefined) {
+      setStoredJobRole(newJobRole);
+    }
+    if (newJobUrl !== undefined) {
+      setStoredJobUrl(newJobUrl);
     }
     // Mark data as fresh since we just updated it
     if (user) {
@@ -187,13 +219,17 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   // Computed value to check if user has any meaningful data
-  const hasAnyData = !!(resumeText || jobDescription || analysis || improvements || interview || qa);
+  const hasAnyData = !!(resumeText || jobDescription || jobRole || jobUrl || analysis || improvements || interview || qa);
 
   const contextValue = {
     resumeText,
     setResumeText,
     jobDescription,
     setJobDescription,
+    jobRole,
+    setJobRole,
+    jobUrl,
+    setJobUrl,
     resumeFile,
     setResumeFile,
     analysis,
@@ -206,6 +242,8 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
     setQa,
     storedResumeText,
     storedJobDescription,
+    storedJobRole,
+    storedJobUrl,
     loadDataFromCache,
     forceReloadData,
     updateStoredValues,

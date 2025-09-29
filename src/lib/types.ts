@@ -5,9 +5,24 @@ import type {SuggestResumeImprovementsOutput} from '@/ai/flows/suggest-resume-im
 
 export type QATopic = "General" | "Technical" | "Work Experience" | "Projects" | "Career Goals" | "Education";
 
+export type JobRole = 
+  | "Frontend Developer"
+  | "Backend Developer" 
+  | "Full Stack Developer"
+  | "DevOps Engineer"
+  | "Data Scientist"
+  | "Mobile Developer"
+  | "UI/UX Designer"
+  | "Product Manager"
+  | "QA Engineer"
+  | "Software Engineer"
+  | "Other";
+
 export type AnalysisResult = {
   resumeText?: string;
   jobDescription?: string;
+  jobRole?: JobRole;
+  jobUrl?: string;
   analysis?: AnalyzeResumeContentOutput | null;
   qa?: Record<QATopic, GenerateResumeQAOutput | null> | null;
   interview?: GenerateInterviewQuestionsOutput | null;

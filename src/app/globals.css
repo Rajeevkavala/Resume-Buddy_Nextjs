@@ -100,6 +100,81 @@ html {
   }
 }
 
+/* Enhanced blue theme animations */
+@keyframes pulse-blue {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Utility classes for animations */
+.animate-slide-up {
+  animation: slide-up 0.6s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out;
+}
+
+.animate-pulse-blue {
+  animation: pulse-blue 2s infinite;
+}
+
+.shimmer {
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Enhanced button hover effects */
+.btn-blue-enhanced {
+  @apply bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98];
+}
+
+/* Card hover effects */
+.card-hover-blue {
+  @apply transition-all duration-300 hover:shadow-lg hover:shadow-blue-100/50 hover:-translate-y-1;
+}
+
+/* Progress bar styles */
+.progress-blue {
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8, #1e40af);
+  background-size: 200% 100%;
+  animation: gradient-x 3s ease infinite;
+}
+
 @keyframes gradient-xy {
   0%, 100% {
     transform: translate(0%, 0%);
