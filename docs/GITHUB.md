@@ -34,7 +34,8 @@ git commit -m "Initial commit: Setup ResumeBuddy project"
 git branch -M main
 
 # Add the URL of your new GitHub repository as the remote
-git remote add origin https://github.com/YourUsername/YourRepositoryName.git
+git remote add origin https://github.com/Rajeevkavala/Resume-Buddy_Nextjs.git
+
 
 # Push your code to the 'main' branch on GitHub
 git push -u origin main

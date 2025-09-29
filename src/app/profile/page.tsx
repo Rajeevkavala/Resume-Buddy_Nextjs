@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Save, Mail, Lock, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { Save, Mail, Lock, Eye, EyeOff, RefreshCw, CheckCircle, Shield } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 import { useRouter } from 'next/navigation';
@@ -244,335 +244,365 @@ export default function ProfilePage() {
   const showSkeleton = authLoading || !user;
 
   return (
-    <div className="flex-1 p-4 md:p-8 flex justify-center">
-      <div className="w-full max-w-2xl">
-        <Card>
-          {showSkeleton ? (
-            <>
-              <CardHeader>
-                <CardTitle>Public Profile</CardTitle>
-                <CardDescription>Loading your profile...</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-8">
-                <div className="space-y-2">
-                  <div className="h-4 bg-muted animate-pulse rounded w-20" />
-                  <div className="h-10 bg-muted animate-pulse rounded" />
+    <div className="flex-1 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        {showSkeleton ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-headline text-2xl">Profile Settings</CardTitle>
+              <CardDescription>Loading your profile...</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Skeleton for horizontal layout */}
+              <div className="grid md:grid-cols-3 gap-8">
+                <div className="md:col-span-1 space-y-4">
+                  <div className="h-32 w-32 bg-muted animate-pulse rounded-full mx-auto" />
+                  <div className="h-6 bg-muted animate-pulse rounded w-24 mx-auto" />
+                  <div className="h-4 bg-muted animate-pulse rounded w-32 mx-auto" />
                 </div>
-                <div className="space-y-2">
-                  <div className="h-4 bg-muted animate-pulse rounded w-24" />
-                  <div className="flex items-center gap-4">
-                    <div className="h-20 w-20 bg-muted animate-pulse rounded-full" />
-                    <div className="h-10 bg-muted animate-pulse rounded w-32" />
+                <div className="md:col-span-2 space-y-6">
+                  <div className="space-y-4">
+                    <div className="h-6 bg-muted animate-pulse rounded w-32" />
+                    <div className="h-10 bg-muted animate-pulse rounded" />
+                    <div className="h-10 bg-muted animate-pulse rounded" />
                   </div>
                 </div>
-                <div className="h-px bg-muted animate-pulse" />
-                <div className="space-y-4">
-                  <div className="h-6 bg-muted animate-pulse rounded w-32" />
-                  <div className="h-12 bg-muted animate-pulse rounded" />
-                  <div className="h-10 bg-muted animate-pulse rounded" />
-                  <div className="h-10 bg-muted animate-pulse rounded" />
-                  <div className="h-10 bg-muted animate-pulse rounded w-32" />
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle className="font-headline text-2xl">Profile Settings</CardTitle>
+                  <CardDescription>
+                    Manage your account information and security settings
+                  </CardDescription>
                 </div>
-                <div className="h-px bg-muted animate-pulse" />
-                <div className="space-y-4">
-                  <div className="h-6 bg-muted animate-pulse rounded w-32" />
-                  <div className="h-10 bg-muted animate-pulse rounded" />
-                  <div className="h-10 bg-muted animate-pulse rounded" />
-                  <div className="h-10 bg-muted animate-pulse rounded" />
-                  <div className="h-10 bg-muted animate-pulse rounded w-36" />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <div className="h-10 bg-muted animate-pulse rounded w-32" />
-              </CardFooter>
-            </>
-          ) : (
-            <>
-              <CardHeader>
-                <CardTitle>Public Profile</CardTitle>
-                <CardDescription>
-                  This is how others will see you on the site.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-8">
-                
-                {/* Profile Information Form */}
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="displayName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Display Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Your Name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        Profile Photo
-                      </label>
-                      <ProfilePhotoUploader
-                        userId={user.uid}
-                        currentPhotoUrl={currentPhotoUrl}
-                        userName={user.displayName}
-                        onPhotoChange={handlePhotoChange}
-                        disabled={isSubmitting}
-                      />
-                    </div>
-
-                    <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting && (
-                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
-                      )}
-                      <Save className="mr-2 h-4 w-4" />
-                      Save Changes
-                    </Button>
-                  </form>
-                </Form>
-
-                <Separator />
-
-                {/* Email Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    <h3 className="text-lg font-medium">Email Address</h3>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Current Email</label>
-                    <div className="p-3 bg-muted rounded-md text-sm">
-                      {user.email || 'No email address'}
-                    </div>
-                    {!user.emailVerified && (
+              </div>
+            </CardHeader>
+            
+            <CardContent>
+              <div className="grid md:grid-cols-3 gap-8">
+                {/* Left Column - Profile Photo & Basic Info */}
+                <div className="md:col-span-1">
+                  <div className="space-y-6">
+                    <div className="text-center space-y-4">
                       <div className="space-y-2">
-                        <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded-md border border-amber-200">
-                          ⚠️ Your current email is not verified. Some features may be limited.
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={sendCurrentEmailVerification}
-                          disabled={isSendingVerification}
-                        >
-                          {isSendingVerification && (
-                            <RefreshCw className="w-3 h-3 animate-spin mr-2" />
-                          )}
-                          <Mail className="mr-2 h-3 w-3" />
-                          Verify Current Email
-                        </Button>
+                        <label className="text-sm font-semibold">
+                          Profile Photo
+                        </label>
+                        <ProfilePhotoUploader
+                          userId={user.uid}
+                          currentPhotoUrl={currentPhotoUrl}
+                          userName={user.displayName}
+                          onPhotoChange={handlePhotoChange}
+                          disabled={isSubmitting}
+                        />
                       </div>
-                    )}
-                  </div>
-
-                  <Form {...emailForm}>
-                    <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-4">
-                      <FormField
-                        control={emailForm.control}
-                        name="newEmail"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>New Email Address</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="email" 
-                                placeholder="Enter new email address" 
-                                {...field} 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
                       
-                      <FormField
-                        control={emailForm.control}
-                        name="currentPassword"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Current Password</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <Input 
-                                  type={showCurrentPassword ? "text" : "password"}
-                                  placeholder="Enter current password" 
-                                  {...field}
-                                />
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                >
-                                  {showCurrentPassword ? (
-                                    <EyeOff className="h-4 w-4" />
-                                  ) : (
-                                    <Eye className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <div className="space-y-3">
-                        <div className="text-sm text-slate-700 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 shadow-sm">
-                          📧 <strong className="text-blue-800">Email Change Process:</strong><br/>
-                          <div className="mt-2 space-y-1 text-slate-600">
-                            <div>1. Enter your new email and current password</div>
-                            <div>2. Click "Send Verification Email"</div>
-                            <div>3. Check your new email for a verification link</div>
-                            <div>4. Click the verification link to complete the change</div>
-                          </div>
+                      <div className="pt-4 border-t">
+                        <h3 className="font-semibold text-lg">
+                          {user.displayName || 'Anonymous User'}
+                        </h3>
+                        <div className="flex items-center justify-center gap-2 mt-2">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">{user.email}</span>
+                          {user.emailVerified ? (
+                            <CheckCircle className="h-4 w-4 text-green-600" title="Email Verified" />
+                          ) : (
+                            <div className="h-4 w-4 rounded-full bg-yellow-200 border-2 border-yellow-400" title="Email Not Verified" />
+                          )}
                         </div>
                         
-                        <Button type="submit" disabled={isChangingEmail} size="sm">
-                          {isChangingEmail && (
+                        {/* Email Verification Status */}
+                        <div className="mt-3">
+                          {user.emailVerified ? (
+                            <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-medium border border-green-200">
+                              <CheckCircle className="h-3 w-3" />
+                              Email Verified
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="inline-flex items-center gap-2 bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium border border-yellow-200">
+                                <div className="h-2 w-2 bg-yellow-400 rounded-full" />
+                                Verification Pending
+                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={sendCurrentEmailVerification}
+                                disabled={isSendingVerification}
+                                className="w-full"
+                              >
+                                {isSendingVerification && (
+                                  <RefreshCw className="w-3 h-3 animate-spin mr-2" />
+                                )}
+                                <Mail className="mr-2 h-3 w-3" />
+                                Verify Email
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column - Forms */}
+                <div className="md:col-span-2 space-y-6">
+                  {/* Display Name Form */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Save className="h-4 w-4" />
+                      <h3 className="text-lg font-semibold">Display Name</h3>
+                    </div>
+                    <Form {...form}>
+                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="displayName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Display Name</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="Your Name" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button 
+                          type="submit" 
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting && (
                             <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
                           )}
-                          <Mail className="mr-2 h-4 w-4" />
-                          Send Verification Email
+                          <Save className="mr-2 h-4 w-4" />
+                          Save Changes
                         </Button>
-                      </div>
-                    </form>
-                  </Form>
-                </div>
-
-                <Separator />
-
-                {/* Password Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Lock className="h-4 w-4" />
-                    <h3 className="text-lg font-medium">Change Password</h3>
+                      </form>
+                    </Form>
                   </div>
 
-                  <Form {...passwordForm}>
-                    <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
-                      <FormField
-                        control={passwordForm.control}
-                        name="currentPassword"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Current Password</FormLabel>
-                            <FormControl>
-                              <div className="relative">
+                  {/* Email Change Form */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      <h3 className="text-lg font-semibold">Change Email Address</h3>
+                    </div>
+                    
+                    <Form {...emailForm}>
+                      <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-4">
+                        <FormField
+                          control={emailForm.control}
+                          name="newEmail"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>New Email Address</FormLabel>
+                              <FormControl>
                                 <Input 
-                                  type={showCurrentPassword ? "text" : "password"}
-                                  placeholder="Enter current password" 
-                                  {...field}
+                                  type="email" 
+                                  placeholder="Enter new email address" 
+                                  {...field} 
                                 />
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                >
-                                  {showCurrentPassword ? (
-                                    <EyeOff className="h-4 w-4" />
-                                  ) : (
-                                    <Eye className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={passwordForm.control}
-                        name="newPassword"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>New Password</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <Input 
-                                  type={showNewPassword ? "text" : "password"}
-                                  placeholder="Enter new password (min. 6 characters)" 
-                                  {...field}
-                                />
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                  onClick={() => setShowNewPassword(!showNewPassword)}
-                                >
-                                  {showNewPassword ? (
-                                    <EyeOff className="h-4 w-4" />
-                                  ) : (
-                                    <Eye className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={passwordForm.control}
-                        name="confirmPassword"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Confirm New Password</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <Input 
-                                  type={showConfirmPassword ? "text" : "password"}
-                                  placeholder="Confirm new password" 
-                                  {...field}
-                                />
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                >
-                                  {showConfirmPassword ? (
-                                    <EyeOff className="h-4 w-4" />
-                                  ) : (
-                                    <Eye className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <Button type="submit" disabled={isChangingPassword} size="sm">
-                        {isChangingPassword && (
-                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
-                        )}
-                        <Lock className="mr-2 h-4 w-4" />
-                        Update Password
-                      </Button>
-                    </form>
-                  </Form>
-                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={emailForm.control}
+                          name="currentPassword"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Current Password</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Input 
+                                    type={showCurrentPassword ? "text" : "password"}
+                                    placeholder="Enter current password" 
+                                    {...field}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                  >
+                                    {showCurrentPassword ? (
+                                      <EyeOff className="h-4 w-4" />
+                                    ) : (
+                                      <Eye className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <div className="space-y-3">
+                          <div className="text-sm bg-muted p-4 rounded-lg">
+                            <strong>Email Change Process:</strong><br/>
+                            <div className="mt-2 space-y-1 text-muted-foreground text-xs">
+                              <div>1. Enter your new email and current password</div>
+                              <div>2. Click "Send Verification Email"</div>
+                              <div>3. Check your new email for a verification link</div>
+                              <div>4. Click the verification link to complete the change</div>
+                            </div>
+                          </div>
+                          
+                          <Button 
+                            type="submit" 
+                            disabled={isChangingEmail}
+                          >
+                            {isChangingEmail && (
+                              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
+                            )}
+                            <Mail className="mr-2 h-4 w-4" />
+                            Send Verification Email
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </div>
 
-              </CardContent>
-            </>
-          )}
-        </Card>
+                  {/* Password Change Form */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Lock className="h-4 w-4" />
+                      <h3 className="text-lg font-semibold">Change Password</h3>
+                    </div>
+
+                    <Form {...passwordForm}>
+                      <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
+                        <FormField
+                          control={passwordForm.control}
+                          name="currentPassword"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Current Password</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Input 
+                                    type={showCurrentPassword ? "text" : "password"}
+                                    placeholder="Enter current password" 
+                                    {...field}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                  >
+                                    {showCurrentPassword ? (
+                                      <EyeOff className="h-4 w-4" />
+                                    ) : (
+                                      <Eye className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={passwordForm.control}
+                          name="newPassword"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>New Password</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Input 
+                                    type={showNewPassword ? "text" : "password"}
+                                    placeholder="Enter new password (min. 6 characters)" 
+                                    {...field}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                    onClick={() => setShowNewPassword(!showNewPassword)}
+                                  >
+                                    {showNewPassword ? (
+                                      <EyeOff className="h-4 w-4" />
+                                    ) : (
+                                      <Eye className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={passwordForm.control}
+                          name="confirmPassword"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Confirm New Password</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Input 
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    placeholder="Confirm new password" 
+                                    {...field}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                  >
+                                    {showConfirmPassword ? (
+                                      <EyeOff className="h-4 w-4" />
+                                    ) : (
+                                      <Eye className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <Button 
+                          type="submit" 
+                          disabled={isChangingPassword}
+                        >
+                          {isChangingPassword && (
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
+                          )}
+                          <Lock className="mr-2 h-4 w-4" />
+                          Update Password
+                        </Button>
+                      </form>
+                    </Form>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

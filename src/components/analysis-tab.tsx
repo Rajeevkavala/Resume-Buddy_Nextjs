@@ -570,67 +570,116 @@ export default function AnalysisTab({
       </div>
       
       {analysis.industryCompatibility && analysis.industryCompatibility.length > 0 && (
-            <Card className="group hover:shadow-lg transition-all duration-300">
-                <CardHeader className="pb-4">
-                    <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
-                            <Building2 className="h-5 w-5 text-white" />
-                        </div>
-                        <div>
-                            <CardTitle className="text-xl">Industry Compatibility</CardTitle>
-                            <CardDescription className="text-sm">How your resume aligns with different industries.</CardDescription>
-                        </div>
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        <CardTitle className="font-headline text-xl">Industry Compatibility</CardTitle>
                     </div>
+                    <CardDescription>How your resume aligns with different industries.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    {analysis.industryCompatibility.map((item, index) => {
-                        const score = parseInt(item.score);
-                        const getScoreColor = (score: number) => {
-                            if (score >= 80) return 'text-green-600 bg-green-50 dark:bg-green-900/20';
-                            if (score >= 60) return 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20';
-                            return 'text-red-600 bg-red-50 dark:bg-red-900/20';
-                        };
-                        
-                        const getStatusBadge = (status: string, score: number) => {
-                            if (score >= 80) return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-                            if (score >= 60) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-                            return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-                        };
+                <CardContent className="space-y-6">
+                    <div className="grid gap-4">
+                        {analysis.industryCompatibility.map((item, index) => {
+                            const score = parseInt(item.score);
+                            const getScoreColor = (score: number) => {
+                                if (score >= 85) return 'text-green-600';
+                                if (score >= 70) return 'text-blue-600';
+                                if (score >= 60) return 'text-yellow-600';
+                                return 'text-red-600';
+                            };
+                            
+                            const getStatusColor = (status: string, score: number) => {
+                                if (score >= 85) return 'bg-green-100 text-green-700 border-green-200';
+                                if (score >= 70) return 'bg-blue-100 text-blue-700 border-blue-200';
+                                if (score >= 60) return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+                                return 'bg-red-100 text-red-700 border-red-200';
+                            };
 
-                        return (
-                            <div key={item.industry} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
-                                <div className="flex items-center gap-4 flex-1">
-                                    <div className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-600"></div>
-                                    <div className="flex-1">
-                                        <h4 className="font-medium text-sm">{item.industry}</h4>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <Badge className={getStatusBadge(item.status, score)} size="sm">
+                            const getProgressColor = (score: number) => {
+                                if (score >= 85) return 'bg-green-500';
+                                if (score >= 70) return 'bg-blue-500';
+                                if (score >= 60) return 'bg-yellow-500';
+                                return 'bg-red-500';
+                            };
+
+                            return (
+                                <div key={item.industry} className="group p-5 rounded-lg border bg-card hover:bg-muted/50 transition-all duration-200">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex-1">
+                                            <h4 className="font-semibold text-base mb-1">{item.industry}</h4>
+                                            <Badge 
+                                                variant="outline" 
+                                                className={`${getStatusColor(item.status, score)} text-xs font-medium`}
+                                            >
                                                 {item.status}
                                             </Badge>
                                         </div>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="text-right">
-                                        <div className={`text-2xl font-bold ${getScoreColor(score)}`}>
-                                            {item.score}
+                                        <div className="text-right ml-4">
+                                            <div className={`text-3xl font-bold ${getScoreColor(score)} mb-1`}>
+                                                {item.score}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground font-medium">
+                                                out of 100
+                                            </div>
                                         </div>
-                                        <div className="text-xs text-muted-foreground">out of 100</div>
                                     </div>
-                                    <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-                                        <div 
-                                            className={`h-full transition-all duration-700 delay-${index * 100} ${
-                                                score >= 80 ? 'bg-gradient-to-r from-green-500 to-green-600' :
-                                                score >= 60 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' :
-                                                'bg-gradient-to-r from-red-500 to-red-600'
-                                            }`}
-                                            style={{ width: `${score}%` }}
-                                        />
+                                    
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-muted-foreground">Compatibility Score</span>
+                                            <span className="font-medium">{score}%</span>
+                                        </div>
+                                        <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
+                                            <div 
+                                                className={`h-full transition-all duration-1000 delay-${index * 150} rounded-full ${getProgressColor(score)}`}
+                                                style={{ 
+                                                    width: `${score}%`,
+                                                    animation: `slideIn 1s ease-out ${index * 0.15}s both`
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Industry insight indicator */}
+                                    <div className="mt-3 pt-3 border-t border-border">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                                <TrendingUp className="h-3 w-3" />
+                                                <span>Market Alignment</span>
+                                            </div>
+                                            <span className={`font-medium ${getScoreColor(score)}`}>
+                                                {score >= 85 ? 'Excellent Match' : 
+                                                 score >= 70 ? 'Strong Match' : 
+                                                 score >= 60 ? 'Good Match' : 'Needs Improvement'}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
+                            );
+                        })}
+                    </div>
+                    
+                    {/* Summary section */}
+                    <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                        <div className="flex items-start gap-3">
+                            <Info className="h-4 w-4 text-primary mt-0.5" />
+                            <div className="flex-1">
+                                <h4 className="font-semibold text-sm mb-1">Industry Analysis Summary</h4>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    Your resume shows strong compatibility with 
+                                    <strong> {analysis.industryCompatibility.filter(item => parseInt(item.score) >= 85).length} industries</strong> 
+                                    {analysis.industryCompatibility.filter(item => parseInt(item.score) >= 85).length > 0 && (
+                                        <span> at an excellent level</span>
+                                    )}
+                                    {analysis.industryCompatibility.filter(item => parseInt(item.score) >= 70 && parseInt(item.score) < 85).length > 0 && (
+                                        <span> and <strong>{analysis.industryCompatibility.filter(item => parseInt(item.score) >= 70 && parseInt(item.score) < 85).length}</strong> at a strong level</span>
+                                    )}
+                                    . Focus on enhancing skills for lower-scoring industries to expand your opportunities.
+                                </p>
                             </div>
-                        );
-                    })}
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
       )}

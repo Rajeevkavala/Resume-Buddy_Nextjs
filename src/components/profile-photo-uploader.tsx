@@ -222,7 +222,6 @@ export function ProfilePhotoUploader({
         </div>
       </div>
 
-      {/* Drag and Drop Area */}
       <Card 
         {...getRootProps()} 
         className={`border-2 border-dashed transition-colors cursor-pointer ${
