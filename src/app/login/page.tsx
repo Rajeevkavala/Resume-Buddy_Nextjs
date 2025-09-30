@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { signInWithEmailAndPassword } from 'firebase/auth';
@@ -11,25 +11,79 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight, AlertCircle, Shield } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { cn } from '@/lib/utils';
 import { createUserProfile, loadData } from '@/lib/firestore';
 import { getUserData, saveUserData } from '@/lib/local-storage';
+import { withSecurePasswordHandling, clearSensitiveData, secureLog } from '@/lib/auth-security';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const router = useRouter();
   const { signInWithGoogle } = useAuth();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  // Auto-clear password from memory after timeout for additional security
+  useEffect(() => {
+    if (password) {
+      const timeout = setTimeout(() => {
+        setPassword('');
+        setPasswordError('');
+      }, 300000); // Clear after 5 minutes of inactivity
+
+      return () => clearTimeout(timeout);
+    }
+  }, [password]);
+
+  // Email validation
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      return 'Email is required';
+    } else if (!emailRegex.test(email)) {
+      return 'Please enter a valid email address';
+    }
+    return '';
+  };
+
+  // Password validation for login (less strict than signup)
+  const validateLoginPassword = (password: string) => {
+    if (!password) {
+      return 'Password is required';
+    } else if (password.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+    return '';
+  };
+
+  const handleLogin = withSecurePasswordHandling(async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate inputs
+    const emailValidationError = validateEmail(email);
+    const passwordValidationError = validateLoginPassword(password);
+    
+    setEmailError(emailValidationError);
+    setPasswordError(passwordValidationError);
+    
+    if (emailValidationError || passwordValidationError) {
+      return;
+    }
+
     setIsLoading(true);
     
     try {
+      secureLog('Starting secure login process', { email });
+      
+      // Firebase Auth handles secure authentication:
+      // - HTTPS/TLS encryption for data transmission
+      // - Server-side password verification with bcrypt
+      // - Secure token generation and management
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
       // Load user data immediately after successful authentication
@@ -51,14 +105,42 @@ export default function LoginPage() {
         // Continue with redirect even if data loading fails
       }
       
+      secureLog('Login successful');
+      
+      // Clear password from memory for additional security
+      setPassword('');
+      
       toast.success('Welcome back!');
       router.push('/dashboard');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to log in. Please check your credentials.');
+      secureLog('Login failed', { error: error.code });
+      
+      // Clear password from memory on error
+      setPassword('');
+      
+      // Handle specific Firebase auth errors
+      let errorMessage = 'Failed to log in. Please try again.';
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email address.';
+        setEmailError('Account not found');
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password. Please try again.';
+        setPasswordError('Incorrect password');
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address.';
+        setEmailError('Invalid email format');
+      } else if (error.code === 'auth/user-disabled') {
+        errorMessage = 'This account has been disabled.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later.';
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  };
+  });
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
@@ -137,12 +219,25 @@ export default function LoginPage() {
                   id="email"
                   type="email"
                   placeholder="Enter your email"
-                  className="pl-10 h-12 border-2 focus:border-blue-500 transition-colors"
-                  required
+                  className={cn(
+                    "pl-10 h-12 border-2 transition-colors",
+                    emailError 
+                      ? "border-red-500 focus:border-red-500" 
+                      : "focus:border-blue-500"
+                  )}
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (emailError) setEmailError('');
+                  }}
                 />
               </div>
+              {emailError && (
+                <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                  <AlertCircle className="h-3 w-3" />
+                  <span>{emailError}</span>
+                </div>
+              )}
             </div>
             
             <div className="space-y-2">
@@ -153,10 +248,17 @@ export default function LoginPage() {
                   id="password" 
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
-                  className="pl-10 pr-10 h-12 border-2 focus:border-blue-500 transition-colors"
-                  required 
+                  className={cn(
+                    "pl-10 pr-10 h-12 border-2 transition-colors",
+                    passwordError 
+                      ? "border-red-500 focus:border-red-500" 
+                      : "focus:border-blue-500"
+                  )}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (passwordError) setPasswordError('');
+                  }}
                 />
                 <button
                   type="button"
@@ -166,6 +268,20 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {passwordError && (
+                <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                  <AlertCircle className="h-3 w-3" />
+                  <span>{passwordError}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Security Notice */}
+            <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <Shield className="h-3 w-3 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+              <p className="text-xs text-blue-800 dark:text-blue-200">
+                <strong>Secure Login:</strong> Your credentials are encrypted with HTTPS/TLS and protected by Firebase Auth security.
+              </p>
             </div>
 
             <Button 

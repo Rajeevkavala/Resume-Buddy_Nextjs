@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Save, Mail, Lock, Eye, EyeOff, RefreshCw, CheckCircle, Shield } from 'lucide-react';
+import { Save, Mail, Lock, RefreshCw, CheckCircle, Shield, Edit, X } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 import { useRouter } from 'next/navigation';
@@ -23,9 +23,11 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
 import { updateUserProfile } from '@/app/actions';
-import { updateProfile, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider, verifyBeforeUpdateEmail, sendEmailVerification } from 'firebase/auth';
+import { updateProfile, sendEmailVerification } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { ProfilePhotoUploader } from '@/components/profile-photo-uploader';
+import { ChangeEmailDialog } from '@/components/change-email-dialog';
+import { ChangePasswordDialog } from '@/components/change-password-dialog';
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, {
@@ -35,53 +37,22 @@ const profileFormSchema = z.object({
   }),
 });
 
-const emailFormSchema = z.object({
-  newEmail: z.string().email('Please enter a valid email address'),
-  currentPassword: z.string().min(1, 'Current password is required'),
-});
 
-const passwordFormSchema = z.object({
-  currentPassword: z.string().min(1, 'Current password is required'),
-  newPassword: z.string().min(6, 'Password must be at least 6 characters'),
-  confirmPassword: z.string().min(6, 'Password confirmation is required'),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
 
 export default function ProfilePage() {
   const { user, loading: authLoading, forceReloadUser } = useAuth();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string | null>(null);
-  const [isChangingEmail, setIsChangingEmail] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isChangeEmailDialogOpen, setIsChangeEmailDialogOpen] = useState(false);
+  const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = useState(false);
 
   const form = useForm<z.infer<typeof profileFormSchema>>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       displayName: '',
-    },
-  });
-
-  const emailForm = useForm<z.infer<typeof emailFormSchema>>({
-    resolver: zodResolver(emailFormSchema),
-    defaultValues: {
-      newEmail: '',
-      currentPassword: '',
-    },
-  });
-
-  const passwordForm = useForm<z.infer<typeof passwordFormSchema>>({
-    resolver: zodResolver(passwordFormSchema),
-    defaultValues: {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
     },
   });
 
@@ -97,14 +68,10 @@ export default function ProfilePage() {
     }
   }, [user, authLoading, router, form]);
 
-  const handlePhotoChange = (photoUrl: string | null) => {
+  const handlePhotoChange = async (photoUrl: string | null) => {
     setCurrentPhotoUrl(photoUrl);
-  };
-
-  const reauthenticateUser = async (currentPassword: string) => {
-    if (!user?.email) throw new Error('No user email found');
-    const credential = EmailAuthProvider.credential(user.email, currentPassword);
-    await reauthenticateWithCredential(user, credential);
+    // Force a reload of the user object from Firebase to get the new data
+    await forceReloadUser?.();
   };
 
   const sendCurrentEmailVerification = async () => {
@@ -127,78 +94,6 @@ export default function ProfilePage() {
         return 'Failed to send verification email. Please try again.';
       },
       finally: () => setIsSendingVerification(false),
-    });
-  };
-
-  const onEmailSubmit = async (values: z.infer<typeof emailFormSchema>) => {
-    if (!user) return;
-    setIsChangingEmail(true);
-
-    const promise = async () => {
-      // Step 1: Reauthenticate user before changing email
-      await reauthenticateUser(values.currentPassword);
-      
-      // Step 2: Send verification email to new address before updating
-      // This method sends a verification email to the new address and only updates the email after verification
-      await verifyBeforeUpdateEmail(user, values.newEmail);
-      
-      return "Verification email sent! Please check your new email address and click the verification link to complete the email change.";
-    };
-
-    toast.promise(promise(), {
-      loading: 'Sending verification email...',
-      success: (message) => {
-        emailForm.reset();
-        return message;
-      },
-      error: (error) => {
-        console.error('Email update error:', error);
-        if (error.code === 'auth/wrong-password') {
-          return 'Incorrect current password';
-        } else if (error.code === 'auth/email-already-in-use') {
-          return 'This email is already in use by another account';
-        } else if (error.code === 'auth/invalid-email') {
-          return 'Invalid email address';
-        } else if (error.code === 'auth/requires-recent-login') {
-          return 'Please log out and log back in before changing your email';
-        } else if (error.code === 'auth/operation-not-allowed') {
-          return 'Email verification is required. Please check your email and verify before updating.';
-        }
-        return 'Failed to send verification email. Please try again.';
-      },
-      finally: () => setIsChangingEmail(false),
-    });
-  };
-
-  const onPasswordSubmit = async (values: z.infer<typeof passwordFormSchema>) => {
-    if (!user) return;
-    setIsChangingPassword(true);
-
-    const promise = async () => {
-      // Reauthenticate user before changing password
-      await reauthenticateUser(values.currentPassword);
-      
-      // Update password
-      await updatePassword(user, values.newPassword);
-      
-      return "Password updated successfully!";
-    };
-
-    toast.promise(promise(), {
-      loading: 'Updating password...',
-      success: (message) => {
-        passwordForm.reset();
-        return message;
-      },
-      error: (error) => {
-        if (error.code === 'auth/wrong-password') {
-          return 'Incorrect current password';
-        } else if (error.code === 'auth/weak-password') {
-          return 'Password is too weak. Please choose a stronger password.';
-        }
-        return 'Failed to update password. Please try again.';
-      },
-      finally: () => setIsChangingPassword(false),
     });
   };
   
@@ -240,6 +135,33 @@ export default function ProfilePage() {
     });
   };
 
+  const handleSaveAllChanges = async () => {
+    if (!user) return;
+    
+    // Get current form values
+    const displayNameValue = form.getValues('displayName');
+    
+    // Validate display name form
+    const isDisplayNameValid = await form.trigger();
+    
+    if (isDisplayNameValid) {
+      await onSubmit({ displayName: displayNameValue });
+      setIsEditMode(false);
+    }
+  };
+
+  const handleEditModeToggle = () => {
+    if (isEditMode) {
+      // Cancel edit mode - reset form to original values
+      form.reset({
+        displayName: user?.displayName || '',
+      });
+      setIsEditMode(false);
+    } else {
+      setIsEditMode(true);
+    }
+  };
+
   // Show skeleton while loading instead of blocking
   const showSkeleton = authLoading || !user;
 
@@ -279,6 +201,39 @@ export default function ProfilePage() {
                   <CardDescription>
                     Manage your account information and security settings
                   </CardDescription>
+                </div>
+                <div className="flex gap-2 mt-4 sm:mt-0">
+                  {isEditMode ? (
+                    <>
+                      <Button
+                        onClick={handleSaveAllChanges}
+                        disabled={isSubmitting}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        {isSubmitting && (
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
+                        )}
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Changes
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleEditModeToggle}
+                        disabled={isSubmitting}
+                      >
+                        <X className="mr-2 h-4 w-4" />
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={handleEditModeToggle}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit Profile
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardHeader>
@@ -360,7 +315,7 @@ export default function ProfilePage() {
                       <h3 className="text-lg font-semibold">Display Name</h3>
                     </div>
                     <Form {...form}>
-                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                      <div className="space-y-4">
                         <FormField
                           control={form.control}
                           name="displayName"
@@ -370,6 +325,8 @@ export default function ProfilePage() {
                               <FormControl>
                                 <Input 
                                   placeholder="Your Name" 
+                                  readOnly={!isEditMode}
+                                  className={!isEditMode ? "bg-muted cursor-default" : ""}
                                   {...field} 
                                 />
                               </FormControl>
@@ -377,231 +334,69 @@ export default function ProfilePage() {
                             </FormItem>
                           )}
                         />
-                        <Button 
-                          type="submit" 
-                          disabled={isSubmitting}
-                        >
-                          {isSubmitting && (
-                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
-                          )}
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </Button>
-                      </form>
+                      </div>
                     </Form>
                   </div>
 
-                  {/* Email Change Form */}
+                  {/* Security Settings */}
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      <h3 className="text-lg font-semibold">Change Email Address</h3>
+                      <Shield className="h-4 w-4" />
+                      <h3 className="text-lg font-semibold">Security Settings</h3>
                     </div>
                     
-                    <Form {...emailForm}>
-                      <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-4">
-                        <FormField
-                          control={emailForm.control}
-                          name="newEmail"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>New Email Address</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="email" 
-                                  placeholder="Enter new email address" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={emailForm.control}
-                          name="currentPassword"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Current Password</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <Input 
-                                    type={showCurrentPassword ? "text" : "password"}
-                                    placeholder="Enter current password" 
-                                    {...field}
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                  >
-                                    {showCurrentPassword ? (
-                                      <EyeOff className="h-4 w-4" />
-                                    ) : (
-                                      <Eye className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <div className="space-y-3">
-                          <div className="text-sm bg-muted p-4 rounded-lg">
-                            <strong>Email Change Process:</strong><br/>
-                            <div className="mt-2 space-y-1 text-muted-foreground text-xs">
-                              <div>1. Enter your new email and current password</div>
-                              <div>2. Click "Send Verification Email"</div>
-                              <div>3. Check your new email for a verification link</div>
-                              <div>4. Click the verification link to complete the change</div>
-                            </div>
-                          </div>
-                          
-                          <Button 
-                            type="submit" 
-                            disabled={isChangingEmail}
-                          >
-                            {isChangingEmail && (
-                              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
-                            )}
-                            <Mail className="mr-2 h-4 w-4" />
-                            Send Verification Email
-                          </Button>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Button
+                        variant="outline"
+                        className="h-auto p-4 flex flex-col items-start space-y-2"
+                        onClick={() => setIsChangeEmailDialogOpen(true)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4" />
+                          <span className="font-medium">Change Email</span>
                         </div>
-                      </form>
-                    </Form>
-                  </div>
+                        <span className="text-xs text-muted-foreground text-left">
+                          Update your email address with verification
+                        </span>
+                      </Button>
 
-                  {/* Password Change Form */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Lock className="h-4 w-4" />
-                      <h3 className="text-lg font-semibold">Change Password</h3>
+                      <Button
+                        variant="outline"
+                        className="h-auto p-4 flex flex-col items-start space-y-2"
+                        onClick={() => setIsChangePasswordDialogOpen(true)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Lock className="h-4 w-4" />
+                          <span className="font-medium">Change Password</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground text-left">
+                          Update your account password
+                        </span>
+                      </Button>
                     </div>
-
-                    <Form {...passwordForm}>
-                      <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
-                        <FormField
-                          control={passwordForm.control}
-                          name="currentPassword"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Current Password</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <Input 
-                                    type={showCurrentPassword ? "text" : "password"}
-                                    placeholder="Enter current password" 
-                                    {...field}
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                  >
-                                    {showCurrentPassword ? (
-                                      <EyeOff className="h-4 w-4" />
-                                    ) : (
-                                      <Eye className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={passwordForm.control}
-                          name="newPassword"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>New Password</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <Input 
-                                    type={showNewPassword ? "text" : "password"}
-                                    placeholder="Enter new password (min. 6 characters)" 
-                                    {...field}
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                    onClick={() => setShowNewPassword(!showNewPassword)}
-                                  >
-                                    {showNewPassword ? (
-                                      <EyeOff className="h-4 w-4" />
-                                    ) : (
-                                      <Eye className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={passwordForm.control}
-                          name="confirmPassword"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Confirm New Password</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <Input 
-                                    type={showConfirmPassword ? "text" : "password"}
-                                    placeholder="Confirm new password" 
-                                    {...field}
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                  >
-                                    {showConfirmPassword ? (
-                                      <EyeOff className="h-4 w-4" />
-                                    ) : (
-                                      <Eye className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <Button 
-                          type="submit" 
-                          disabled={isChangingPassword}
-                        >
-                          {isChangingPassword && (
-                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
-                          )}
-                          <Lock className="mr-2 h-4 w-4" />
-                          Update Password
-                        </Button>
-                      </form>
-                    </Form>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Change Email Dialog */}
+        {user && (
+          <ChangeEmailDialog
+            isOpen={isChangeEmailDialogOpen}
+            onClose={() => setIsChangeEmailDialogOpen(false)}
+            user={user}
+          />
+        )}
+
+        {/* Change Password Dialog */}
+        {user && (
+          <ChangePasswordDialog
+            isOpen={isChangePasswordDialogOpen}
+            onClose={() => setIsChangePasswordDialogOpen(false)}
+            user={user}
+          />
         )}
       </div>
     </div>

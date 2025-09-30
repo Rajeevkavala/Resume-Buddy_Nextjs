@@ -3,12 +3,14 @@
 import { useState, useRef, useCallback } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Upload, Camera, Trash2, Loader2, Edit, Palette } from 'lucide-react';
+
+import { Trash2, Loader2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { uploadProfilePhoto, deleteProfilePhoto, checkSupabaseSetup } from '@/lib/supabase';
-import { useDropzone } from 'react-dropzone';
 import { ImageEditor } from './image-editor';
+import { updateProfile } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { updateUserProfile } from '@/app/actions';
 
 interface ProfilePhotoUploaderProps {
   userId: string;
@@ -75,7 +77,23 @@ export function ProfilePhotoUploader({
       // Upload to Supabase
       const photoUrl = await uploadProfilePhoto(userId, file);
       
-      // Call the parent component's handler
+      // Update Firebase Auth profile
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        await updateProfile(currentUser, {
+          photoURL: photoUrl
+        });
+      }
+
+      // Update profile in database
+      const formData = new FormData();
+      formData.append('photoURL', photoUrl);
+      if (currentUser?.displayName) {
+        formData.append('displayName', currentUser.displayName);
+      }
+      await updateUserProfile(userId, formData);
+      
+      // Call the parent component's handler to update UI
       onPhotoChange(photoUrl);
       
       toast.success('Profile photo updated successfully!');
@@ -118,6 +136,23 @@ export function ProfilePhotoUploader({
       const success = await deleteProfilePhoto(userId, currentPhotoUrl);
       
       if (success) {
+        // Update Firebase Auth profile
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          await updateProfile(currentUser, {
+            photoURL: null
+          });
+        }
+
+        // Update profile in database
+        const formData = new FormData();
+        formData.append('photoURL', '');
+        if (currentUser?.displayName) {
+          formData.append('displayName', currentUser.displayName);
+        }
+        await updateUserProfile(userId, formData);
+        
+        // Update UI
         onPhotoChange(null);
         setPreviewUrl(null);
         toast.success('Profile photo removed successfully!');
@@ -131,129 +166,88 @@ export function ProfilePhotoUploader({
     }
   };
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      handleFileSelect(acceptedFiles[0]);
-    }
-  }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
-    },
-    multiple: false,
-    disabled: disabled || isUploading
-  });
 
   const displayPhotoUrl = previewUrl || currentPhotoUrl;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-6">
-        {/* Avatar Display */}
-        <Avatar className="h-24 w-24 ring-2 ring-border">
-          {displayPhotoUrl && <AvatarImage src={displayPhotoUrl} alt={userName || 'Profile'} />}
-          <AvatarFallback className="text-2xl font-semibold">
-            {getInitials(userName)}
-          </AvatarFallback>
-        </Avatar>
+      <div className="flex flex-col items-center gap-4">
+        {/* Avatar Display with Hover Edit Icon */}
+        <div className="relative group">
+          <Avatar className="h-32 w-32 ring-2 ring-border cursor-pointer transition-all duration-200 group-hover:ring-4 group-hover:ring-primary/20">
+            {displayPhotoUrl && <AvatarImage src={displayPhotoUrl} alt={userName || 'Profile'} />}
+            <AvatarFallback className="text-3xl font-semibold">
+              {getInitials(userName)}
+            </AvatarFallback>
+          </Avatar>
 
-        {/* Upload Actions */}
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap gap-2">
+          {/* Hover Edit Icon */}
+          <div 
+            className={`absolute inset-0 flex items-center justify-center bg-black/60 rounded-full opacity-0 transition-opacity duration-200 ${
+              disabled ? 'cursor-not-allowed' : 'cursor-pointer group-hover:opacity-100'
+            }`}
+            onClick={() => !disabled && fileInputRef.current?.click()}
+          >
+            {isUploading ? (
+              <Loader2 className="w-8 h-8 text-white animate-spin" />
+            ) : (
+              <Pencil className="w-8 h-8 text-white" />
+            )}
+          </div>
+
+          {/* Loading overlay when uploading */}
+          {isUploading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full">
+              <div className="text-center text-white">
+                <Loader2 className="w-8 h-8 mx-auto animate-spin mb-2" />
+                <p className="text-sm">Uploading...</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* User Info and Actions */}
+        <div className="text-center space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Hover over photo to edit • JPG, PNG, GIF up to 10MB
+          </p>
+          
+          {/* Remove button - only show if there's a photo */}
+          {displayPhotoUrl && (
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={disabled || isUploading}
+              onClick={handleDeletePhoto}
+              disabled={disabled || isDeleting || isUploading}
+              className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
             >
-              {isUploading ? (
+              {isDeleting ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : (
-                <Camera className="w-4 h-4 mr-2" />
+                <Trash2 className="w-4 h-4 mr-2" />
               )}
-              {isUploading ? 'Uploading...' : 'Choose & Edit'}
+              {isDeleting ? 'Removing...' : 'Remove Photo'}
             </Button>
-
-            {displayPhotoUrl && (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    // Convert current photo to file for editing
-                    fetch(displayPhotoUrl)
-                      .then(res => res.blob())
-                      .then(blob => {
-                        const file = new File([blob], 'current-photo.jpg', { type: 'image/jpeg' });
-                        handleFileSelect(file);
-                      })
-                      .catch(() => toast.error('Failed to load current photo for editing'));
-                  }}
-                  disabled={disabled || isUploading}
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Current
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDeletePhoto}
-                  disabled={disabled || isDeleting}
-                >
-                  {isDeleting ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4 mr-2" />
-                  )}
-                  {isDeleting ? 'Removing...' : 'Remove'}
-                </Button>
-              </>
-            )}
-          </div>
-
-          <p className="text-xs text-muted-foreground">
-            JPG, PNG, GIF up to 10MB • Crop, adjust, and enhance your photos
-          </p>
+          )}
         </div>
       </div>
 
-      <Card 
-        {...getRootProps()} 
-        className={`border-2 border-dashed transition-colors cursor-pointer ${
-          isDragActive 
-            ? 'border-primary bg-primary/5' 
-            : 'border-muted-foreground/25 hover:border-muted-foreground/50'
-        } ${(disabled || isUploading) ? 'opacity-50 cursor-not-allowed' : ''}`}
-      >
-        <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-          <input {...getInputProps()} ref={fileInputRef} />
-          
-          <div className="flex flex-col items-center">
-            <div className="flex items-center gap-2 mb-2">
-              <Upload className={`w-6 h-6 ${
-                isDragActive ? 'text-primary' : 'text-muted-foreground'
-              }`} />
-              <Palette className={`w-6 h-6 ${
-                isDragActive ? 'text-primary' : 'text-muted-foreground'
-              }`} />
-            </div>
-            
-            <p className="text-sm font-medium mb-1">
-              {isDragActive ? 'Drop your photo here' : 'Drag & drop to edit your photo'}
-            </p>
-            
-            <p className="text-xs text-muted-foreground text-center">
-              Crop, adjust colors, rotate, and enhance<br />
-              or click anywhere to browse files
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Hidden file input */}
+      <input 
+        type="file"
+        ref={fileInputRef}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            handleFileSelect(file);
+          }
+        }}
+        accept="image/*"
+        disabled={disabled}
+        className="hidden"
+      />
 
       {/* Image Editor Modal */}
       <ImageEditor

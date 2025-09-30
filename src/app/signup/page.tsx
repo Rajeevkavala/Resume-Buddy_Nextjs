@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
@@ -11,50 +11,110 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Mail, Lock, Eye, EyeOff, User, Sparkles, ArrowRight, Shield, Check } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Sparkles, ArrowRight, Shield, Check, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { cn } from '@/lib/utils';
 import { createUserProfile, loadData } from '@/lib/firestore';
 import { getUserData, saveUserData } from '@/lib/local-storage';
+import { PasswordInput } from '@/components/ui/password-input';
+import { validatePassword, validatePasswordMatch, type PasswordValidationResult } from '@/lib/password-validation';
+import { withSecurePasswordHandling, clearSensitiveData, secureLog } from '@/lib/auth-security';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [nameError, setNameError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordValidation, setPasswordValidation] = useState<PasswordValidationResult | null>(null);
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const router = useRouter();
   const { signInWithGoogle } = useAuth();
 
-  // Password strength validation
-  const getPasswordStrength = (pwd: string) => {
-    if (pwd.length < 6) return { score: 0, text: 'Too short', color: 'text-red-500' };
-    if (pwd.length < 8) return { score: 1, text: 'Weak', color: 'text-orange-500' };
-    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(pwd)) return { score: 2, text: 'Fair', color: 'text-yellow-500' };
-    return { score: 3, text: 'Strong', color: 'text-green-500' };
+  // Auto-clear passwords from memory after timeout for additional security
+  useEffect(() => {
+    if (password || confirmPassword) {
+      const timeout = setTimeout(() => {
+        setPassword('');
+        setConfirmPassword('');
+        setConfirmPasswordError('');
+      }, 300000); // Clear after 5 minutes of inactivity
+
+      return () => clearTimeout(timeout);
+    }
+  }, [password, confirmPassword]);
+
+  // Validation functions
+  const validateName = (name: string) => {
+    if (!name.trim()) {
+      return 'Full name is required';
+    } else if (name.trim().length < 2) {
+      return 'Name must be at least 2 characters';
+    } else if (name.trim().length > 50) {
+      return 'Name must be less than 50 characters';
+    }
+    return '';
   };
 
-  const passwordStrength = getPasswordStrength(password);
-  const passwordsMatch = password && confirmPassword && password === confirmPassword;
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      return 'Email is required';
+    } else if (!emailRegex.test(email)) {
+      return 'Please enter a valid email address';
+    }
+    return '';
+  };
 
-  const handleSignup = async (e: React.FormEvent) => {
+  // Handle confirm password validation
+  const handleConfirmPasswordChange = (value: string) => {
+    if (value && password) {
+      const passwordMatch = validatePasswordMatch(password, value);
+      setConfirmPasswordError(passwordMatch.isValid ? '' : (passwordMatch.error || "Passwords don't match"));
+    } else {
+      setConfirmPasswordError('');
+    }
+  };
+
+  const handleSignup = withSecurePasswordHandling(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password !== confirmPassword) {
-      toast.error("Passwords do not match.");
+    // Validate all inputs
+    const nameValidationError = validateName(name);
+    const emailValidationError = validateEmail(email);
+    
+    setNameError(nameValidationError);
+    setEmailError(emailValidationError);
+    
+    if (nameValidationError || emailValidationError) {
       return;
     }
 
-    if (passwordStrength.score < 2) {
-      toast.error("Please use a stronger password.");
+    // Validate password strength
+    if (!passwordValidation?.isValid) {
+      toast.error('Please choose a stronger password that meets all requirements.');
+      return;
+    }
+
+    // Validate password confirmation
+    const passwordMatch = validatePasswordMatch(password, confirmPassword);
+    if (!passwordMatch.isValid) {
+      setConfirmPasswordError(passwordMatch.error || "Passwords don't match");
+      toast.error("Passwords do not match.");
       return;
     }
 
     setIsLoading(true);
 
     try {
+      secureLog('Starting secure account creation', { email, name });
+      
+      // Firebase Auth handles secure account creation:
+      // - HTTPS/TLS encryption for data transmission
+      // - Secure password hashing with bcrypt + salt
+      // - No plain text password storage
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
       // Update user profile with display name
@@ -72,14 +132,26 @@ export default function SignupPage() {
         // Continue with redirect even if profile setup fails
       }
       
+      secureLog('Account creation successful');
+      
+      // Clear passwords from memory for additional security
+      setPassword('');
+      setConfirmPassword('');
+      
       toast.success('Account created successfully! Welcome to ResumeBuddy!');
       router.push('/dashboard');
     } catch (error: any) {
+      secureLog('Account creation failed', { error: error.message });
+      
+      // Clear passwords from memory on error
+      setPassword('');
+      setConfirmPassword('');
+      
       toast.error(error.message || 'Failed to create account.');
     } finally {
       setIsLoading(false);
     }
-  };
+  });
 
   const handleGoogleSignUp = async () => {
     setIsLoading(true);
@@ -158,12 +230,25 @@ export default function SignupPage() {
                   id="name"
                   type="text"
                   placeholder="Enter your full name"
-                  className="pl-10 h-12 border-2 focus:border-emerald-500 transition-colors"
-                  required
+                  className={cn(
+                    "pl-10 h-12 border-2 transition-colors",
+                    nameError 
+                      ? "border-red-500 focus:border-red-500" 
+                      : "focus:border-emerald-500"
+                  )}
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (nameError) setNameError('');
+                  }}
                 />
               </div>
+              {nameError && (
+                <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                  <AlertCircle className="h-3 w-3" />
+                  <span>{nameError}</span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -174,86 +259,66 @@ export default function SignupPage() {
                   id="email"
                   type="email"
                   placeholder="Enter your email"
-                  className="pl-10 h-12 border-2 focus:border-emerald-500 transition-colors"
-                  required
+                  className={cn(
+                    "pl-10 h-12 border-2 transition-colors",
+                    emailError 
+                      ? "border-red-500 focus:border-red-500" 
+                      : "focus:border-emerald-500"
+                  )}
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (emailError) setEmailError('');
+                  }}
                 />
               </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  id="password" 
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Create a password"
-                  className="pl-10 pr-10 h-12 border-2 focus:border-emerald-500 transition-colors"
-                  required 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-              {password && (
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Shield className="h-3 w-3 text-muted-foreground" />
-                    <span className={cn("text-xs font-medium", passwordStrength.color)}>
-                      {passwordStrength.text}
-                    </span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-1.5">
-                    <div 
-                      className={cn(
-                        "h-1.5 rounded-full transition-all duration-300",
-                        passwordStrength.score === 0 && "w-1/4 bg-red-500",
-                        passwordStrength.score === 1 && "w-2/4 bg-orange-500",
-                        passwordStrength.score === 2 && "w-3/4 bg-yellow-500",
-                        passwordStrength.score === 3 && "w-full bg-green-500"
-                      )}
-                    />
-                  </div>
+              {emailError && (
+                <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                  <AlertCircle className="h-3 w-3" />
+                  <span>{emailError}</span>
                 </div>
               )}
             </div>
+            
+            {/* Enhanced Password Input */}
+            <div className="space-y-3">
+              <PasswordInput
+                label="Password"
+                placeholder="Create a strong password"
+                showStrengthMeter={true}
+                showCriteria={true}
+                onValidationChange={setPasswordValidation}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
 
+            {/* Confirm Password */}
             <div className="space-y-2">
-              <Label htmlFor="confirm-password" className="text-sm font-medium">Confirm Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  id="confirm-password" 
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm your password"
-                  className={cn(
-                    "pl-10 pr-10 h-12 border-2 transition-colors",
-                    confirmPassword && (passwordsMatch ? "border-green-500" : "border-red-500"),
-                    !confirmPassword && "focus:border-emerald-500"
-                  )}
-                  required 
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
-                  {confirmPassword && passwordsMatch && (
-                    <Check className="h-4 w-4 text-green-500" />
-                  )}
-                  <button
-                    type="button"
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+              <PasswordInput
+                label="Confirm Password"
+                placeholder="Confirm your password"
+                showStrengthMeter={false}
+                showCriteria={false}
+                error={confirmPasswordError}
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  handleConfirmPasswordChange(e.target.value);
+                }}
+              />
+            </div>
+
+            {/* Enhanced Security Notice */}
+            <div className="flex items-start gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+              <Shield className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-emerald-800 dark:text-emerald-200">
+                <p className="font-medium mb-2">🔐 Enterprise-Grade Security</p>
+                <div className="text-xs space-y-1">
+                  <p>✅ <strong>HTTPS/TLS:</strong> All data encrypted during transmission</p>
+                  <p>✅ <strong>bcrypt Hashing:</strong> Passwords secured with salt</p>
+                  <p>✅ <strong>Firebase Auth:</strong> Google's secure infrastructure</p>
+                  <p>✅ <strong>No Plain Text:</strong> Passwords never stored as plain text</p>
                 </div>
               </div>
             </div>
@@ -264,7 +329,7 @@ export default function SignupPage() {
                 "w-full h-12 text-base font-medium bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 transition-all duration-200 group",
                 isLoading && "opacity-50 cursor-not-allowed"
               )}
-              disabled={isLoading || !passwordsMatch || passwordStrength.score < 2}
+              disabled={isLoading || !passwordValidation?.isValid || !!confirmPasswordError}
             >
               {isLoading ? (
                 <div className="flex items-center space-x-2">

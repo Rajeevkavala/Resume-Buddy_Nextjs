@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
@@ -69,6 +70,7 @@ const DEFAULT_TRANSFORMS: ImageTransforms = {
 };
 
 export function ImageEditor({ isOpen, onClose, imageFile, onSave }: ImageEditorProps) {
+  const { theme } = useTheme();
   const [imageSrc, setImageSrc] = useState<string>('');
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
@@ -81,6 +83,11 @@ export function ImageEditor({ isOpen, onClose, imageFile, onSave }: ImageEditorP
   
   const imgRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Get theme-aware background color
+  const getThemeBackground = () => {
+    return theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50';
+  };
 
   // Load image when file changes
   useEffect(() => {
@@ -268,29 +275,38 @@ export function ImageEditor({ isOpen, onClose, imageFile, onSave }: ImageEditorP
             <TabsContent value="crop" className="space-y-4">
               <Card>
                 <CardContent className="p-4">
-                  <div className="relative max-w-full max-h-96 overflow-hidden rounded-lg">
-                    <ReactCrop
-                      crop={crop}
-                      onChange={(_, percentCrop) => setCrop(percentCrop)}
-                      onComplete={(c) => setCompletedCrop(c)}
-                      aspect={1}
-                      minWidth={50}
-                      minHeight={50}
-                      keepSelection
-                      ruleOfThirds
-                    >
-                      <img
-                        ref={imgRef}
-                        alt="Crop preview"
-                        src={imageSrc}
-                        style={getFilterStyle()}
-                        onLoad={onImageLoad}
-                        className="max-w-full max-h-96 object-contain"
-                      />
-                    </ReactCrop>
+                  <div className={`relative w-full flex justify-center items-center ${getThemeBackground()} rounded-lg min-h-[400px] max-h-[500px] overflow-auto`}>
+                    <div className="relative">
+                      <ReactCrop
+                        crop={crop}
+                        onChange={(_, percentCrop) => setCrop(percentCrop)}
+                        onComplete={(c) => setCompletedCrop(c)}
+                        aspect={1}
+                        minWidth={50}
+                        minHeight={50}
+                        keepSelection
+                        ruleOfThirds
+                        className="max-w-full max-h-full"
+                      >
+                        <img
+                          ref={imgRef}
+                          alt="Crop preview"
+                          src={imageSrc}
+                          style={{
+                            ...getFilterStyle(),
+                            maxWidth: '100%',
+                            maxHeight: '500px',
+                            width: 'auto',
+                            height: 'auto',
+                            display: 'block'
+                          }}
+                          onLoad={onImageLoad}
+                        />
+                      </ReactCrop>
+                    </div>
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Drag to adjust the crop area. The image will be cropped to a square.
+                    Drag to adjust the crop area. The image will be cropped to a square. Scroll if needed to see the full image.
                   </p>
                 </CardContent>
               </Card>
@@ -422,12 +438,18 @@ export function ImageEditor({ isOpen, onClose, imageFile, onSave }: ImageEditorP
                     </div>
                   </div>
 
-                  <div className="relative max-w-full max-h-64 overflow-hidden rounded-lg border">
+                  <div className={`relative w-full flex justify-center items-center ${getThemeBackground()} rounded-lg border min-h-[250px] max-h-[300px] overflow-auto`}>
                     <img
                       alt="Adjustment preview"
                       src={imageSrc}
-                      style={getFilterStyle()}
-                      className="max-w-full max-h-64 object-contain mx-auto"
+                      style={{
+                        ...getFilterStyle(),
+                        maxWidth: '100%',
+                        maxHeight: '300px',
+                        width: 'auto',
+                        height: 'auto',
+                        display: 'block'
+                      }}
                     />
                   </div>
                 </CardContent>
@@ -470,12 +492,18 @@ export function ImageEditor({ isOpen, onClose, imageFile, onSave }: ImageEditorP
                     />
                   </div>
 
-                  <div className="relative max-w-full max-h-64 overflow-hidden rounded-lg border">
+                  <div className={`relative w-full flex justify-center items-center ${getThemeBackground()} rounded-lg border min-h-[250px] max-h-[300px] overflow-auto`}>
                     <img
                       alt="Transform preview"
                       src={imageSrc}
-                      style={getFilterStyle()}
-                      className="max-w-full max-h-64 object-contain mx-auto"
+                      style={{
+                        ...getFilterStyle(),
+                        maxWidth: '100%',
+                        maxHeight: '300px',
+                        width: 'auto',
+                        height: 'auto',
+                        display: 'block'
+                      }}
                     />
                   </div>
                 </CardContent>
@@ -541,12 +569,18 @@ export function ImageEditor({ isOpen, onClose, imageFile, onSave }: ImageEditorP
                     </div>
                   </div>
 
-                  <div className="relative max-w-full max-h-64 overflow-hidden rounded-lg border">
+                  <div className={`relative w-full flex justify-center items-center ${getThemeBackground()} rounded-lg border min-h-[250px] max-h-[300px] overflow-auto`}>
                     <img
                       alt="Export preview"
                       src={imageSrc}
-                      style={getFilterStyle()}
-                      className="max-w-full max-h-64 object-contain mx-auto"
+                      style={{
+                        ...getFilterStyle(),
+                        maxWidth: '100%',
+                        maxHeight: '300px',
+                        width: 'auto',
+                        height: 'auto',
+                        display: 'block'
+                      }}
                     />
                   </div>
                 </CardContent>
