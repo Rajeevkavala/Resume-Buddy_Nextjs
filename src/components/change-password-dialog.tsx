@@ -154,7 +154,7 @@ export function ChangePasswordDialog({ isOpen, onClose, user }: ChangePasswordDi
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[700px] lg:max-w-[800px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Lock className="h-5 w-5" />
@@ -166,108 +166,128 @@ export function ChangePasswordDialog({ isOpen, onClose, user }: ChangePasswordDi
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Current Password */}
-            <FormField
-              control={form.control}
-              name="currentPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <div className="relative">
-                      <Input 
-                        type={showCurrentPassword ? "text" : "password"}
-                        placeholder="Enter current password" 
-                        className="pl-10 pr-12 h-12 border-2 focus:border-blue-500 transition-colors"
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            {/* Row 1: Current Password (Full Width) */}
+            <div>
+              <FormField
+                control={form.control}
+                name="currentPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label htmlFor="currentPassword" className="text-sm font-medium mb-2 block">
+                      Current Password
+                    </Label>
+                    <FormControl>
+                      <div className="relative">
+                        <Input 
+                          type={showCurrentPassword ? "text" : "password"}
+                          placeholder="Enter current password" 
+                          className="pl-10 pr-12 h-12 border-2 focus:border-blue-500 transition-colors"
+                          {...field}
+                        />
+                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                          <Lock className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-1 top-1/2 transform -translate-y-1/2 h-10 w-10 hover:bg-transparent"
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        >
+                          {showCurrentPassword ? (
+                            <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                          )}
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Row 2: New Password Fields (Side by Side) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* New Password with Compact Validation */}
+              <FormField
+                control={form.control}
+                name="newPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <PasswordInput
+                        label="New Password"
+                        placeholder="Enter new password"
+                        showStrengthMeter={true}
+                        showCriteria={false}
+                        onValidationChange={setNewPasswordValidation}
                         {...field}
                       />
-                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                        <Lock className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-1 top-1/2 transform -translate-y-1/2 h-10 w-10 hover:bg-transparent"
-                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                      >
-                        {showCurrentPassword ? (
-                          <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                        ) : (
-                          <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                        )}
-                      </Button>
-                    </div>
-                  </FormControl>
-                  <Label htmlFor="currentPassword" className="text-sm font-medium">
-                    Current Password
-                  </Label>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* New Password with Strength Validation */}
-            <FormField
-              control={form.control}
-              name="newPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <PasswordInput
-                      label="New Password"
-                      placeholder="Enter new password"
-                      showStrengthMeter={true}
-                      showCriteria={true}
-                      onValidationChange={setNewPasswordValidation}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Confirm Password */}
-            <FormField
-              control={form.control}
-              name="confirmPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <PasswordInput
-                      label="Confirm New Password"
-                      placeholder="Confirm new password"
-                      showStrengthMeter={false}
-                      showCriteria={false}
-                      error={confirmPasswordError}
-                      {...field}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        handleConfirmPasswordChange(e.target.value);
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Confirm Password */}
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <PasswordInput
+                        label="Confirm New Password"
+                        placeholder="Confirm new password"
+                        showStrengthMeter={false}
+                        showCriteria={false}
+                        error={confirmPasswordError}
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          handleConfirmPasswordChange(e.target.value);
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Password Requirements (Compact Display) */}
+            {newPasswordValidation && !newPasswordValidation.isValid && (
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border">
+                <h4 className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Password Requirements:</h4>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className={`flex items-center gap-1 ${newPasswordValidation.criteria.minLength ? 'text-green-600' : 'text-red-500'}`}>
+                    {newPasswordValidation.criteria.minLength ? '✓' : '✗'} At least 6 characters
+                  </div>
+                  <div className={`flex items-center gap-1 ${newPasswordValidation.criteria.hasUppercase ? 'text-green-600' : 'text-red-500'}`}>
+                    {newPasswordValidation.criteria.hasUppercase ? '✓' : '✗'} Uppercase letter
+                  </div>
+                  <div className={`flex items-center gap-1 ${newPasswordValidation.criteria.hasLowercase ? 'text-green-600' : 'text-red-500'}`}>
+                    {newPasswordValidation.criteria.hasLowercase ? '✓' : '✗'} Lowercase letter
+                  </div>
+                  <div className={`flex items-center gap-1 ${newPasswordValidation.criteria.hasNumber ? 'text-green-600' : 'text-red-500'}`}>
+                    {newPasswordValidation.criteria.hasNumber ? '✓' : '✗'} Number
+                  </div>
+                  <div className={`flex items-center gap-1 ${newPasswordValidation.criteria.hasSpecialChar ? 'text-green-600' : 'text-red-500'}`}>
+                    {newPasswordValidation.criteria.hasSpecialChar ? '✓' : '✗'} Special character
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Enhanced Security Notice */}
-            <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-              <div className="text-sm text-blue-800 dark:text-blue-200">
-                <p className="font-medium mb-2">🔐 Enterprise-Grade Security</p>
-                <div className="text-xs space-y-1">
-                  <p>✅ <strong>HTTPS/TLS Encryption:</strong> All data encrypted in transit</p>
-                  <p>✅ <strong>Firebase Auth Security:</strong> bcrypt hashing with salt</p>
-                  <p>✅ <strong>No Plain Text Storage:</strong> Passwords never stored as plain text</p>
-                  <p>✅ <strong>Google Infrastructure:</strong> SOC 2 & ISO 27001 compliant</p>
-                </div>
-                <p className="text-xs mt-2 opacity-75">
-                  Re-authentication required for additional security protection.
-                </p>
-              </div>
+            <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                Re-authentication required for additional security protection.
+              </p>
             </div>
 
             <DialogFooter>
