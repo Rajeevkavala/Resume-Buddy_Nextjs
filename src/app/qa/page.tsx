@@ -63,11 +63,11 @@ export default function QAPage() {
     if (qa) {
       setQa({ ...qa, [topic]: null });
     } else {
-      setQa({ [topic]: null });
+      setQa({ [topic]: null } as any);
     }
 
     const promise = runQAGenerationAction({ userId: user.uid, resumeText, jobDescription, topic, numQuestions }).then((result) => {
-        const newQaData = { ...qa, [topic]: result };
+        const newQaData = { ...qa, [topic]: result } as any;
         setQa(newQaData);
         saveUserData(user.uid, {
             qa: newQaData,
@@ -97,15 +97,15 @@ export default function QAPage() {
   }
 
   return (
-    <div className="flex-1 p-4 md:p-8">
+    <div className="flex-1 p-3 sm:p-4 md:p-8">
       <Card>
-        <CardHeader>
-          <CardTitle className="font-headline text-xl">Resume Q&A Generator</CardTitle>
-          <CardDescription>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="font-headline text-lg sm:text-xl">Resume Q&A Generator</CardTitle>
+          <CardDescription className="text-sm sm:text-base">
             Generate intelligent, context-aware question-and-answer pairs based on your resume.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           {isLoading ? (
             <QALoading />
           ) : (

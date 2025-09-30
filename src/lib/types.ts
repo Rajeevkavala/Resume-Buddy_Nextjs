@@ -3,6 +3,9 @@ import type {GenerateInterviewQuestionsOutput} from '@/ai/flows/generate-intervi
 import type {GenerateResumeQAOutput} from '@/ai/flows/generate-resume-qa';
 import type {SuggestResumeImprovementsOutput} from '@/ai/flows/suggest-resume-improvements';
 
+// Re-export AI flow types for easier imports
+export type { AnalyzeResumeContentOutput, GenerateInterviewQuestionsOutput, GenerateResumeQAOutput, SuggestResumeImprovementsOutput };
+
 export type QATopic = "General" | "Technical" | "Work Experience" | "Projects" | "Career Goals" | "Education";
 
 export type JobRole = 

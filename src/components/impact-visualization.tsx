@@ -52,15 +52,15 @@ const ImpactPieChart = ({ data, title }: { data: { name: string; value: number; 
           </CardTitle>
         </CardHeader>
         <CardContent className="relative">
-          <div className="h-32 relative">
+          <div className="h-28 sm:h-32 relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={data}
                   cx="50%"
                   cy="50%"
-                  innerRadius={25}
-                  outerRadius={50}
+                  innerRadius={20}
+                  outerRadius={window.innerWidth < 640 ? 40 : 50}
                   paddingAngle={3}
                   dataKey="value"
                   onMouseEnter={(_, index) => setHoveredIndex(index)}
@@ -89,11 +89,13 @@ const ImpactPieChart = ({ data, title }: { data: { name: string; value: number; 
                     borderRadius: '12px',
                     boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
                     backdropFilter: 'blur(10px)',
-                    color: '#f8fafc'
+                    color: '#f8fafc',
+                    fontSize: '12px'
                   }}
                   labelStyle={{
                     color: '#e2e8f0',
-                    fontWeight: '600'
+                    fontWeight: '600',
+                    fontSize: '11px'
                   }}
                 />
               </PieChart>
@@ -107,7 +109,7 @@ const ImpactPieChart = ({ data, title }: { data: { name: string; value: number; 
                 className="absolute inset-0 flex items-center justify-center pointer-events-none"
               >
                 <div className="text-center">
-                  <div className="text-lg font-bold text-foreground">
+                  <div className="text-sm sm:text-lg font-bold text-foreground">
                     {data[hoveredIndex]?.value}%
                   </div>
                   <div className="text-xs text-muted-foreground capitalize">
@@ -118,24 +120,24 @@ const ImpactPieChart = ({ data, title }: { data: { name: string; value: number; 
             )}
           </div>
           
-          <div className="flex justify-center gap-4 mt-3">
+          <div className="flex justify-center gap-2 sm:gap-4 mt-2 sm:mt-3 flex-wrap">
             {data.map((item, index) => (
               <motion.div 
                 key={index} 
-                className="flex items-center gap-1.5 cursor-pointer"
+                className="flex items-center gap-1 sm:gap-1.5 cursor-pointer"
                 whileHover={{ scale: 1.05 }}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
                 <div 
-                  className="w-3 h-3 rounded-full transition-all duration-300 border-2 border-transparent hover:border-white/50"
+                  className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-all duration-300 border-2 border-transparent hover:border-white/50 flex-shrink-0"
                   style={{ 
                     backgroundColor: item.color,
                     boxShadow: hoveredIndex === index ? `0 0 10px ${item.color}50` : 'none',
                     transform: hoveredIndex === index ? 'scale(1.2)' : 'scale(1)'
                   }}
                 />
-                <span className={`text-xs transition-colors duration-300 ${
+                <span className={`text-xs transition-colors duration-300 truncate ${
                   hoveredIndex === index ? 'text-foreground font-medium' : 'text-muted-foreground'
                 }`}>
                   {item.name}
@@ -191,12 +193,12 @@ const ImprovementTrendChart = ({ atsScore, skillsMatch, quantifiedAchievements }
           </div>
         </CardHeader>
         <CardContent className="relative">
-          <div className="h-64 relative">
+          <div className="h-48 sm:h-64 relative">
             {/* Background glow effect */}
             <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-lg" />
             
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <AreaChart data={data} margin={{ top: 10, right: 15, left: 10, bottom: 5 }}>
                 <defs>
                   <linearGradient id="atsGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={COLORS.primary} stopOpacity={0.8} />
@@ -214,14 +216,16 @@ const ImprovementTrendChart = ({ atsScore, skillsMatch, quantifiedAchievements }
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} />
                 <XAxis 
                   dataKey="phase" 
-                  tick={{ fontSize: 12, fill: '#6b7280' }}
+                  tick={{ fontSize: 10, fill: '#6b7280' }}
                   axisLine={false}
                   tickLine={false}
+                  className="text-xs sm:text-sm"
                 />
                 <YAxis 
-                  tick={{ fontSize: 12, fill: '#6b7280' }}
+                  tick={{ fontSize: 10, fill: '#6b7280' }}
                   axisLine={false}
                   tickLine={false}
+                  className="text-xs sm:text-sm"
                 />
                 <Tooltip 
                   formatter={(value: number, name: string) => {
@@ -237,11 +241,13 @@ const ImprovementTrendChart = ({ atsScore, skillsMatch, quantifiedAchievements }
                     borderRadius: '12px',
                     boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
                     backdropFilter: 'blur(10px)',
-                    color: '#f8fafc'
+                    color: '#f8fafc',
+                    fontSize: '12px'
                   }}
                   labelStyle={{
                     color: '#e2e8f0',
-                    fontWeight: '600'
+                    fontWeight: '600',
+                    fontSize: '11px'
                   }}
                 />
                 <Area
@@ -383,7 +389,7 @@ export default function ImpactVisualization({ atsScore, skillsMatch, quantifiedA
       />
 
       {/* Pie Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
         <ImpactPieChart data={atsData} title="ATS Compatibility" />
         <ImpactPieChart data={skillsData} title="Skills Match" />
         <ImpactPieChart data={quantifiedData} title="Quantified Results" />

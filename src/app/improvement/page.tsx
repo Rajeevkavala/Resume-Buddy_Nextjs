@@ -207,15 +207,15 @@ export default function ImprovementPage() {
   }
 
   return (
-    <div className="flex-1 p-4 md:p-8">
+    <div className="flex-1 p-3 sm:p-4 md:p-8">
       <Card>
-        <CardHeader>
-          <CardTitle className="font-headline text-xl">Resume Improvement</CardTitle>
-          <CardDescription>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="font-headline text-lg sm:text-xl">Resume Improvement</CardTitle>
+          <CardDescription className="text-sm sm:text-base">
             Get AI-powered suggestions to improve your resume.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           {isLoading ? (
             <ImprovementLoading />
           ) : (

@@ -94,14 +94,15 @@ const BeforeAfterChart = ({ data, title, color, icon }: {
         
         <CardContent className="space-y-4">
           {/* Before/After Bar Chart */}
-          <div className="h-24">
+          <div className="h-20 sm:h-24">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                 <XAxis 
                   dataKey="name" 
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 12, fill: '#6b7280' }}
+                  tick={{ fontSize: 10, fill: '#6b7280' }}
+                  className="text-xs sm:text-sm"
                 />
                 <Tooltip 
                   formatter={(value: number) => [`${value}${data.suffix}`, '']}
@@ -112,11 +113,13 @@ const BeforeAfterChart = ({ data, title, color, icon }: {
                     borderRadius: '12px',
                     boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
                     backdropFilter: 'blur(10px)',
-                    color: '#f8fafc'
+                    color: '#f8fafc',
+                    fontSize: '12px'
                   }}
                   labelStyle={{
                     color: '#e2e8f0',
-                    fontWeight: '600'
+                    fontWeight: '600',
+                    fontSize: '11px'
                   }}
                 />
                 <Bar dataKey="value" radius={[4, 4, 0, 0]}>

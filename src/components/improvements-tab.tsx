@@ -49,16 +49,16 @@ const StatCard = ({ icon, title, before, after, suffix = "" }: { icon: React.Rea
             {/* Animated background gradient */}
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-primary/3 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             
-            <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors duration-300">{title}</CardTitle>
-                <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-all duration-300 group-hover:shadow-md group-hover:scale-105">
+            <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2 sm:pb-3">
+                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors duration-300 leading-tight">{title}</CardTitle>
+                <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-all duration-300 group-hover:shadow-md group-hover:scale-105 flex-shrink-0">
                     {icon}
                 </div>
             </CardHeader>
-            <CardContent className="relative space-y-3">
-                <div className="flex items-baseline gap-2">
-                    <div className="text-3xl font-bold text-primary group-hover:scale-105 transition-transform duration-300">{after}{suffix}</div>
-                    <div className="text-sm text-muted-foreground group-hover:text-foreground/70 transition-colors duration-300">target</div>
+            <CardContent className="relative space-y-2 sm:space-y-3">
+                <div className="flex items-baseline gap-1 sm:gap-2">
+                    <div className="text-2xl sm:text-3xl font-bold text-primary group-hover:scale-105 transition-transform duration-300">{after}{suffix}</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground group-hover:text-foreground/70 transition-colors duration-300">target</div>
                 </div>
                 
                 <div className="space-y-2">
@@ -289,44 +289,44 @@ export default function ImprovementsTab({
             </CardHeader>
             <CardContent>
                 <Tabs defaultValue="comprehensive" className="w-full">
-                    <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-muted/70 via-muted/50 to-muted/70 backdrop-blur-md border border-primary/10 rounded-xl p-1 shadow-lg">
+                    <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-gradient-to-r from-muted/70 via-muted/50 to-muted/70 backdrop-blur-md border border-primary/10 rounded-xl p-1 shadow-lg gap-1 sm:gap-0">
                         <TabsTrigger 
                             value="comprehensive" 
-                            className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/25 transition-all duration-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 dark:hover:text-blue-300 rounded-lg font-medium text-sm"
+                            className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/25 transition-all duration-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 dark:hover:text-blue-300 rounded-lg font-medium text-xs sm:text-sm p-1 sm:p-2"
                         >
-                            <span className="relative z-10 flex items-center gap-1">
-                                <Sparkles className="h-3 w-3" />
-                                Comprehensive
+                            <span className="relative z-10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1">
+                                <Sparkles className="h-3 w-3 sm:h-3 sm:w-3" />
+                                <span className="text-center leading-tight">Comprehensive</span>
                             </span>
                             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
                         </TabsTrigger>
                         <TabsTrigger 
                             value="enhanced" 
-                            className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/25 transition-all duration-500 hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-300 rounded-lg font-medium text-sm"
+                            className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/25 transition-all duration-500 hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-300 rounded-lg font-medium text-xs sm:text-sm p-1 sm:p-2"
                         >
-                            <span className="relative z-10 flex items-center gap-1">
-                                <TrendingUp className="h-3 w-3" />
-                                Enhanced View
+                            <span className="relative z-10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1">
+                                <TrendingUp className="h-3 w-3 sm:h-3 sm:w-3" />
+                                <span className="text-center leading-tight">Enhanced</span>
                             </span>
                             <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
                         </TabsTrigger>
                         <TabsTrigger 
                             value="detailed" 
-                            className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/25 transition-all duration-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-700 dark:hover:text-purple-300 rounded-lg font-medium text-sm"
+                            className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/25 transition-all duration-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-700 dark:hover:text-purple-300 rounded-lg font-medium text-xs sm:text-sm p-1 sm:p-2"
                         >
-                            <span className="relative z-10 flex items-center gap-1">
-                                <BarChart3 className="h-3 w-3" />
-                                Detailed Charts
+                            <span className="relative z-10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1">
+                                <BarChart3 className="h-3 w-3 sm:h-3 sm:w-3" />
+                                <span className="text-center leading-tight">Charts</span>
                             </span>
                             <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-violet-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
                         </TabsTrigger>
                         <TabsTrigger 
                             value="simple" 
-                            className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-amber-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-orange-500/25 transition-all duration-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:text-orange-700 dark:hover:text-orange-300 rounded-lg font-medium text-sm"
+                            className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-amber-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-orange-500/25 transition-all duration-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:text-orange-700 dark:hover:text-orange-300 rounded-lg font-medium text-xs sm:text-sm p-1 sm:p-2"
                         >
-                            <span className="relative z-10 flex items-center gap-1">
-                                <Target className="h-3 w-3" />
-                                Simple View
+                            <span className="relative z-10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1">
+                                <Target className="h-3 w-3 sm:h-3 sm:w-3" />
+                                <span className="text-center leading-tight">Simple</span>
                             </span>
                             <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-amber-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
                         </TabsTrigger>
@@ -401,23 +401,23 @@ export default function ImprovementsTab({
                     <TabsContent value="simple" className="mt-6 animate-in fade-in-0 slide-in-from-bottom-2 duration-500">
                         <div className="relative">
                             <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-amber-500/5 rounded-xl -z-10" />
-                            <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
+                            <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
                                 <StatCard 
-                                    icon={<Eye className="h-5 w-5 text-blue-600" />}
+                                    icon={<Eye className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />}
                                     title="ATS Compatibility"
                                     before={impactForecast?.atsScore?.before ?? 0}
                                     after={impactForecast?.atsScore?.after ?? 0}
                                     suffix="%"
                                 />
                                  <StatCard 
-                                    icon={<Target className="h-5 w-5 text-green-600" />}
+                                    icon={<Target className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />}
                                     title="Skills Match"
                                     before={impactForecast?.skillsMatch?.before ?? 0}
                                     after={impactForecast?.skillsMatch?.after ?? 0}
                                     suffix="%"
                                 />
                                  <StatCard 
-                                    icon={<Award className="h-5 w-5 text-purple-600" />}
+                                    icon={<Award className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />}
                                     title="Quantified Results"
                                     before={impactForecast?.quantifiedAchievements?.before ?? 0}
                                     after={impactForecast?.quantifiedAchievements?.after ?? 0}
@@ -463,27 +463,27 @@ export default function ImprovementsTab({
           </div>
         </CardHeader>
         <CardContent>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-2 sm:space-y-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                    <h3 className="font-semibold text-sm text-muted-foreground">
+                    <div className="w-3 h-3 rounded-full bg-red-500 flex-shrink-0"></div>
+                    <h3 className="font-semibold text-xs sm:text-sm text-muted-foreground">
                         Original Resume
                     </h3>
                   </div>
-                  <ScrollArea className="h-96 rounded-lg border border-red-200 dark:border-red-800 p-4 bg-red-50/30 dark:bg-red-900/10">
-                      <p className="text-sm whitespace-pre-wrap text-foreground leading-relaxed">{originalResume}</p>
+                  <ScrollArea className="h-64 sm:h-80 lg:h-96 rounded-lg border border-red-200 dark:border-red-800 p-3 sm:p-4 bg-red-50/30 dark:bg-red-900/10">
+                      <p className="text-xs sm:text-sm whitespace-pre-wrap text-foreground leading-relaxed break-words">{originalResume}</p>
                   </ScrollArea>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <h3 className="font-semibold text-sm text-green-700 dark:text-green-400">
+                    <div className="w-3 h-3 rounded-full bg-green-500 flex-shrink-0"></div>
+                    <h3 className="font-semibold text-xs sm:text-sm text-green-700 dark:text-green-400">
                         Enhanced Resume
                     </h3>
                   </div>
-                  <ScrollArea className="h-96 rounded-lg border border-green-200 dark:border-green-800 p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
-                      <p className="text-sm whitespace-pre-wrap text-foreground leading-relaxed">
+                  <ScrollArea className="h-64 sm:h-80 lg:h-96 rounded-lg border border-green-200 dark:border-green-800 p-3 sm:p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+                      <p className="text-xs sm:text-sm whitespace-pre-wrap text-foreground leading-relaxed break-words">
                       {improvedResumeText}
                       </p>
                   </ScrollArea>
@@ -506,22 +506,22 @@ export default function ImprovementsTab({
                 </div>
             </CardHeader>
             <CardContent>
-                <ScrollArea className="h-[350px]">
-                    <div className="space-y-4">
+                <ScrollArea className="h-[300px] sm:h-[350px]">
+                    <div className="space-y-3 sm:space-y-4">
                         {(quantifiedAchievements ?? []).map((item, index) => (
-                            <div key={index} className="p-4 rounded-lg border bg-gradient-to-br from-card to-card/50 hover:shadow-sm transition-all duration-200">
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-2 mb-2">
+                            <div key={index} className="p-3 sm:p-4 rounded-lg border bg-gradient-to-br from-card to-card/50 hover:shadow-sm transition-all duration-200">
+                                <div className="space-y-2 sm:space-y-3">
+                                    <div className="flex items-center gap-2 mb-1 sm:mb-2">
                                         <Badge variant="outline" className="text-xs">{item.section}</Badge>
                                     </div>
-                                    <div className="space-y-2 text-sm">
-                                        <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded border-l-4 border-red-400">
-                                            <p className="text-muted-foreground line-through">{item.original || 'General duty'}</p>
+                                    <div className="space-y-2 text-xs sm:text-sm">
+                                        <div className="p-2 sm:p-3 bg-red-50 dark:bg-red-900/20 rounded border-l-4 border-red-400">
+                                            <p className="text-muted-foreground line-through break-words">{item.original || 'General duty'}</p>
                                         </div>
-                                        <div className="flex items-start gap-3">
-                                            <ArrowRight className="h-4 w-4 text-green-500 mt-1 flex-shrink-0" />
-                                            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded border-l-4 border-green-500 flex-1">
-                                                <p className="font-medium text-foreground">{item.improved}</p>
+                                        <div className="flex items-start gap-2 sm:gap-3">
+                                            <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 mt-1 flex-shrink-0" />
+                                            <div className="p-2 sm:p-3 bg-green-50 dark:bg-green-900/20 rounded border-l-4 border-green-500 flex-1 min-w-0">
+                                                <p className="font-medium text-foreground break-words">{item.improved}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -546,19 +546,19 @@ export default function ImprovementsTab({
                 </div>
             </CardHeader>
             <CardContent>
-                 <ScrollArea className="h-[350px]">
-                    <div className="space-y-3">
+                 <ScrollArea className="h-[300px] sm:h-[350px]">
+                    <div className="space-y-2 sm:space-y-3">
                         {(integratedSkills ?? []).map((item, index) => (
-                            <div key={index} className="p-4 rounded-lg border bg-gradient-to-br from-card to-card/50 hover:shadow-sm transition-all duration-200">
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-2">
-                                        <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                            <div key={index} className="p-3 sm:p-4 rounded-lg border bg-gradient-to-br from-card to-card/50 hover:shadow-sm transition-all duration-200">
+                                <div className="space-y-2 sm:space-y-3">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-xs">
                                             {item.skill}
                                         </Badge>
-                                        <CheckCircle className="h-4 w-4 text-green-500" />
+                                        <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
                                     </div>
-                                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded border-l-4 border-blue-500">
-                                        <p className="text-sm text-foreground italic">
+                                    <div className="p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 rounded border-l-4 border-blue-500">
+                                        <p className="text-xs sm:text-sm text-foreground italic break-words">
                                             "...{item.integrationPoint}..."
                                         </p>
                                     </div>
@@ -597,9 +597,9 @@ export default function ImprovementsTab({
             </p>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <ExportDialog format="docx" onExport={onExport}>
-              <Button className="w-full sm:w-auto bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all duration-300">
+              <Button className="w-full sm:w-auto bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all duration-300 text-sm sm:text-base">
                 <FileText className="mr-2 h-4 w-4" />
                 Export as DOCX
               </Button>
@@ -608,7 +608,7 @@ export default function ImprovementsTab({
             <ExportDialog format="pdf" onExport={onExport}>
               <Button 
                 variant="outline" 
-                className="w-full sm:w-auto hover:bg-primary/5 border-primary/20"
+                className="w-full sm:w-auto hover:bg-primary/5 border-primary/20 text-sm sm:text-base"
               >
                 <Download className="mr-2 h-4 w-4" />
                 Export as PDF

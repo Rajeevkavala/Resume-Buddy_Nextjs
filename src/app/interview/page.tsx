@@ -116,15 +116,15 @@ export default function InterviewPage() {
   }
 
   return (
-    <div className="flex-1 p-4 md:p-8">
+    <div className="flex-1 p-3 sm:p-4 md:p-8">
       <Card>
-        <CardHeader>
-          <CardTitle className="font-headline text-xl">AI-Powered Interview Quiz</CardTitle>
-          <CardDescription>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="font-headline text-lg sm:text-xl">AI-Powered Interview Quiz</CardTitle>
+          <CardDescription className="text-sm sm:text-base">
             Configure your interview type and difficulty to generate a tailored quiz.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           {isLoading ? (
             <InterviewLoading />
           ) : (

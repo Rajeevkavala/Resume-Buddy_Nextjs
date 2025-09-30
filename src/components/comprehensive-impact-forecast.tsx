@@ -144,7 +144,7 @@ const MetricCard = ({
               transition={{ delay: index * 0.15 + 0.3 }}
             >
               <div 
-                className="text-3xl font-bold bg-gradient-to-r bg-clip-text text-transparent transition-all duration-300 group-hover:scale-105"
+                className="text-2xl sm:text-3xl font-bold bg-gradient-to-r bg-clip-text text-transparent transition-all duration-300 group-hover:scale-105"
                 style={{
                   backgroundImage: `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)`
                 }}
