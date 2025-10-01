@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { createUserProfile, loadData } from '@/lib/firestore';
 import { getUserData, saveUserData } from '@/lib/local-storage';
 import { withSecurePasswordHandling, clearSensitiveData, secureLog } from '@/lib/auth-security';
+import { usePageTitle } from '@/hooks/use-page-title';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -27,6 +28,9 @@ export default function LoginPage() {
   const [passwordError, setPasswordError] = useState('');
   const router = useRouter();
   const { signInWithGoogle } = useAuth();
+
+  // Set page title
+  usePageTitle('Login');
 
   // Auto-clear password from memory after timeout for additional security
   useEffect(() => {

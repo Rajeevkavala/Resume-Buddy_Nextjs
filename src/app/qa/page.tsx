@@ -14,6 +14,7 @@ import {
   LoadingSpinner 
 } from '@/components/loading-animations';
 import { QASkeleton } from '@/components/ui/page-skeletons';
+import { usePageTitle } from '@/hooks/use-page-title';
 
 type Topic = "General" | "Technical" | "Work Experience" | "Projects" | "Career Goals" | "Education";
 
@@ -23,6 +24,9 @@ export default function QAPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [selectedTopic, setSelectedTopic] = useState<Topic>("General");
+
+  // Set page title
+  usePageTitle('Resume Q&A');
 
   // Handle page loading state
   useEffect(() => {

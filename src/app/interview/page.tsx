@@ -15,6 +15,7 @@ import {
   LoadingSpinner 
 } from '@/components/loading-animations';
 import { InterviewSkeleton } from '@/components/ui/page-skeletons';
+import { usePageTitle } from '@/hooks/use-page-title';
 
 // Dynamically import InterviewTab
 const InterviewTab = dynamic(() => import('@/components/interview-tab'), {
@@ -30,6 +31,9 @@ export default function InterviewPage() {
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
+
+  // Set page title
+  usePageTitle('Interview Prep');
 
   // Handle page loading state - fixed logic
   useEffect(() => {

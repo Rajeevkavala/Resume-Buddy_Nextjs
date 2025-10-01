@@ -4,8 +4,22 @@ import './globals.css';
 import ClientLayout from './client-layout';
 
 export const metadata: Metadata = {
-  title: 'ResumeBuddy',
-  description: 'AI-Powered Resume Analyzer',
+  title: {
+    default: 'ResumeBuddy - AI-Powered Resume Analyzer',
+    template: '%s | ResumeBuddy'
+  },
+  description: 'Analyze and optimize your resume with AI. Get ATS scores, personalized improvements, interview prep, and skill gap analysis tailored to your target job description.',
+  keywords: ['resume analyzer', 'AI resume', 'ATS score', 'job application', 'interview preparation', 'resume optimization', 'career tools'],
+  authors: [{ name: 'ResumeBuddy' }],
+  creator: 'ResumeBuddy',
+  publisher: 'ResumeBuddy',
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    apple: '/apple-icon.png',
+  },
 };
 
 export default function RootLayout({

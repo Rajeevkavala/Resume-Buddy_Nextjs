@@ -28,6 +28,7 @@ import { extractText, saveData, clearData } from '../actions';
 import { toast } from 'sonner';
 import { Save, Trash2, FileText, Briefcase, Link, CheckCircle, AlertCircle, Upload, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
+import { usePageTitle } from '@/hooks/use-page-title';
 import { useRouter } from 'next/navigation';
 import { saveUserData, clearUserData as clearLocalData } from '@/lib/local-storage';
 import FileUploader from '@/components/file-uploader';
@@ -62,6 +63,9 @@ export default function Dashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+
+  // Set page title
+  usePageTitle('Dashboard');
 
   // Handle page loading state
   useEffect(() => {

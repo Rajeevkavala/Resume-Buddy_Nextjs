@@ -28,6 +28,7 @@ import { auth } from '@/lib/firebase';
 import { ProfilePhotoUploader } from '@/components/profile-photo-uploader';
 import { ChangeEmailDialog } from '@/components/change-email-dialog';
 import { ChangePasswordDialog } from '@/components/change-password-dialog';
+import { usePageTitle } from '@/hooks/use-page-title';
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, {
@@ -55,6 +56,9 @@ export default function ProfilePage() {
       displayName: '',
     },
   });
+
+  // Set page title
+  usePageTitle('Profile Settings');
 
   useEffect(() => {
     if (!authLoading && !user) {

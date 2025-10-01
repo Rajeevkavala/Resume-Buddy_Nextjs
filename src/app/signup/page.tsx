@@ -19,6 +19,7 @@ import { getUserData, saveUserData } from '@/lib/local-storage';
 import { PasswordInput } from '@/components/ui/password-input';
 import { validatePassword, validatePasswordMatch, type PasswordValidationResult } from '@/lib/password-validation';
 import { withSecurePasswordHandling, clearSensitiveData, secureLog } from '@/lib/auth-security';
+import { usePageTitle } from '@/hooks/use-page-title';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
@@ -32,6 +33,9 @@ export default function SignupPage() {
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const router = useRouter();
   const { signInWithGoogle } = useAuth();
+
+  // Set page title
+  usePageTitle('Sign Up');
 
   // Auto-clear passwords from memory after timeout for additional security
   useEffect(() => {

@@ -20,6 +20,7 @@ import {
   LoadingSpinner 
 } from '@/components/loading-animations';
 import { ImprovementSkeleton } from '@/components/ui/page-skeletons';
+import { usePageTitle } from '@/hooks/use-page-title';
 
 // Dynamically import ImprovementsTab
 const ImprovementsTab = dynamic(() => import('@/components/improvements-tab'), {
@@ -32,6 +33,9 @@ export default function ImprovementPage() {
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
+
+  // Set page title
+  usePageTitle('Resume Improvements');
 
   // Handle page loading state - fixed logic
   useEffect(() => {

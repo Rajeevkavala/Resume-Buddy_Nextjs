@@ -28,10 +28,14 @@ import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 import { SparklesCore } from '@/components/ui/sparkles';
 import { AnimatedCounter } from '@/components/ui/animated-counter';
 import { MovingBorder } from '@/components/ui/moving-border';
+import { usePageTitle } from '@/hooks/use-page-title';
 
 export default function LandingPage() {
   const { user, loading: authLoading } = useAuth();
   const [mounted, setMounted] = useState(false);
+
+  // Set page title
+  usePageTitle('Home');
 
   useEffect(() => {
     setMounted(true);

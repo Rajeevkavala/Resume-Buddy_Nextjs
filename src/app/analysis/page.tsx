@@ -15,6 +15,7 @@ import {
   LoadingSpinner 
 } from '@/components/loading-animations';
 import { AnalysisSkeleton } from '@/components/ui/page-skeletons';
+import { usePageTitle } from '@/hooks/use-page-title';
 
 // Dynamically import heavy components
 const AnalysisTab = dynamic(() => import('@/components/analysis-tab'), {
@@ -27,6 +28,9 @@ export default function AnalysisPage() {
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
+
+  // Set page title
+  usePageTitle('Resume Analysis');
 
   // Handle page loading state - fixed logic
   useEffect(() => {
