@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import ClientLayout from './client-layout';
-
+import { Analytics } from "@vercel/analytics/next"
 // Optimize font loading with next/font
 const inter = Inter({
   subsets: ['latin'],
@@ -62,6 +62,7 @@ export default function RootLayout({
       <body className="font-body antialiased" suppressHydrationWarning>
         <ClientLayout>
           {children}
+          <Analytics />
         </ClientLayout>
       </body>
     </html>

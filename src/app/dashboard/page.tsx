@@ -149,16 +149,23 @@ export default function Dashboard() {
     setIsSaving(true);
 
     // When saving new text, clear all previous AI results
-    const dataToSave = { 
+    const dataToSave: any = { 
       resumeText, 
       jobDescription,
-      jobRole: jobRole || undefined,
-      jobUrl: jobUrl || undefined,
       analysis: null,
       qa: null,
       interview: null,
       improvements: null,
     };
+    
+    // Only add optional fields if they have values
+    if (jobRole) {
+      dataToSave.jobRole = jobRole;
+    }
+    
+    if (jobUrl) {
+      dataToSave.jobUrl = jobUrl;
+    }
 
     const promise = saveData(user.uid, dataToSave).then(() => {
       // Also update local storage, which will clear the old results

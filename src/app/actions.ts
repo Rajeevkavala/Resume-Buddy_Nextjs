@@ -17,6 +17,7 @@ import type { AnalyzeResumeContentOutput } from '@/ai/flows/analyze-resume-conte
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { getJobDescriptionForRole, shouldUsePreset } from '@/lib/job-description-presets';
 
 const baseSchema = z.object({
   userId: z.string().min(1, 'User ID is required.'),
@@ -25,10 +26,8 @@ const baseSchema = z.object({
     .min(100, 'Resume text is too short. Please provide a more detailed resume.'),
   jobDescription: z
     .string()
-    .min(
-      100,
-      'Job description is too short. Please provide a more detailed job description.'
-    ),
+    .optional(),
+  jobRole: z.string().optional(),
 });
 
 const qaSchema = baseSchema.extend({
@@ -98,7 +97,7 @@ export async function clearData(userId: string) {
 export async function runAnalysisAction(input: {
   userId: string;
   resumeText: string;
-  jobDescription: string;
+  jobDescription?: string;
   jobRole?: JobRole | '';
   jobUrl?: string;
 }) {
@@ -106,21 +105,49 @@ export async function runAnalysisAction(input: {
   if (!validatedFields.success) {
     throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
   }
-  const analysis = await analyzeResumeContent(validatedFields.data);
-  await saveToDb(input.userId, { 
+  
+  // Determine the job description to use
+  let finalJobDescription = input.jobDescription || '';
+  const jobRoleValue = (input.jobRole && input.jobRole.length > 0 ? input.jobRole : undefined) as JobRole | undefined;
+  
+  // Use preset if job description is missing or too short and a role is selected
+  if (shouldUsePreset(finalJobDescription, jobRoleValue)) {
+    if (jobRoleValue) {
+      finalJobDescription = getJobDescriptionForRole(jobRoleValue);
+      console.log(`[Analysis] Using preset job description for role: ${jobRoleValue}`);
+    } else {
+      throw new Error('Please provide either a job description or select a target role.');
+    }
+  }
+  
+  const analysis = await analyzeResumeContent({
+    resumeText: validatedFields.data.resumeText,
+    jobDescription: finalJobDescription,
+  });
+  
+  // Prepare data for saving - exclude undefined values
+  const dataToSave: any = { 
     analysis, 
     resumeText: input.resumeText, 
-    jobDescription: input.jobDescription,
-    jobRole: input.jobRole || undefined,
-    jobUrl: input.jobUrl || undefined,
-  });
+    jobDescription: finalJobDescription,
+  };
+  
+  if (jobRoleValue) {
+    dataToSave.jobRole = jobRoleValue;
+  }
+  
+  if (input.jobUrl) {
+    dataToSave.jobUrl = input.jobUrl;
+  }
+  
+  await saveToDb(input.userId, dataToSave);
   return analysis;
 }
 
 export async function runQAGenerationAction(input: {
   userId: string;
   resumeText: string;
-  jobDescription: string;
+  jobDescription?: string;
   topic: "General" | "Technical" | "Work Experience" | "Projects" | "Career Goals" | "Education";
   numQuestions: number;
   jobRole?: JobRole | '';
@@ -130,44 +157,95 @@ export async function runQAGenerationAction(input: {
   if (!validatedFields.success) {
     throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
   }
+  
+  // Determine the job description to use
+  let finalJobDescription = input.jobDescription || '';
+  const jobRoleValue = (input.jobRole && input.jobRole.length > 0 ? input.jobRole : undefined) as JobRole | undefined;
+  
+  // Use preset if job description is missing or too short and a role is selected
+  if (shouldUsePreset(finalJobDescription, jobRoleValue)) {
+    if (jobRoleValue) {
+      finalJobDescription = getJobDescriptionForRole(jobRoleValue);
+      console.log(`[QA] Using preset job description for role: ${jobRoleValue}`);
+    }
+  }
+  
   const qaResult = await generateResumeQA({
     resumeText: validatedFields.data.resumeText,
     topic: validatedFields.data.topic,
     numQuestions: validatedFields.data.numQuestions,
   });
 
-  const dataToSave = {
+  // Prepare data for saving - exclude undefined values
+  const dataToSave: any = {
       [`qa.${input.topic}`]: qaResult,
       resumeText: input.resumeText,
-      jobDescription: input.jobDescription,
-      jobRole: input.jobRole || undefined,
-      jobUrl: input.jobUrl || undefined,
+      jobDescription: finalJobDescription,
   };
+  
+  if (jobRoleValue) {
+    dataToSave.jobRole = jobRoleValue;
+  }
+  
+  if (input.jobUrl) {
+    dataToSave.jobUrl = input.jobUrl;
+  }
 
   await saveToDb(input.userId, dataToSave);
   return qaResult;
 }
 
-export async function runInterviewGenerationAction(input: GenerateInterviewQuestionsInput & { userId: string; jobRole?: JobRole | ''; jobUrl?: string }) {
+export async function runInterviewGenerationAction(input: GenerateInterviewQuestionsInput & { userId: string; jobRole?: JobRole | ''; jobUrl?: string; jobDescription?: string }) {
   const validatedFields = interviewSchema.safeParse(input);
   if (!validatedFields.success) {
     throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
   }
-  const interview = await generateInterviewQuestions(validatedFields.data);
-  await saveToDb(input.userId, { 
+  
+  // Determine the job description to use
+  let finalJobDescription = input.jobDescription || '';
+  const jobRoleValue = (input.jobRole && input.jobRole.length > 0 ? input.jobRole : undefined) as JobRole | undefined;
+  
+  // Use preset if job description is missing or too short and a role is selected
+  if (shouldUsePreset(finalJobDescription, jobRoleValue)) {
+    if (jobRoleValue) {
+      finalJobDescription = getJobDescriptionForRole(jobRoleValue);
+      console.log(`[Interview] Using preset job description for role: ${jobRoleValue}`);
+    } else {
+      throw new Error('Please provide either a job description or select a target role.');
+    }
+  }
+  
+  const interview = await generateInterviewQuestions({
+    resumeText: validatedFields.data.resumeText,
+    jobDescription: finalJobDescription,
+    numQuestions: validatedFields.data.numQuestions,
+    interviewType: validatedFields.data.interviewType,
+    difficultyLevel: validatedFields.data.difficultyLevel,
+  });
+  
+  // Prepare data for saving - exclude undefined values
+  const dataToSave: any = { 
     interview, 
     resumeText: input.resumeText, 
-    jobDescription: input.jobDescription,
-    jobRole: input.jobRole || undefined,
-    jobUrl: input.jobUrl || undefined,
-  });
+    jobDescription: finalJobDescription,
+  };
+  
+  if (jobRoleValue) {
+    dataToSave.jobRole = jobRoleValue;
+  }
+  
+  if (input.jobUrl) {
+    dataToSave.jobUrl = input.jobUrl;
+  }
+  
+  await saveToDb(input.userId, dataToSave);
   return interview;
 }
 
 export async function runImprovementsGenerationAction(input: {
   userId: string;
   resumeText: string;
-  jobDescription: string;
+  jobDescription?: string;
   previousAnalysis?: AnalyzeResumeContentOutput | null;
   jobRole?: JobRole | '';
   jobUrl?: string;
@@ -176,18 +254,43 @@ export async function runImprovementsGenerationAction(input: {
   if (!validatedFields.success) {
     throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
   }
+  
+  // Determine the job description to use
+  let finalJobDescription = input.jobDescription || '';
+  const jobRoleValue = (input.jobRole && input.jobRole.length > 0 ? input.jobRole : undefined) as JobRole | undefined;
+  
+  // Use preset if job description is missing or too short and a role is selected
+  if (shouldUsePreset(finalJobDescription, jobRoleValue)) {
+    if (jobRoleValue) {
+      finalJobDescription = getJobDescriptionForRole(jobRoleValue);
+      console.log(`[Improvements] Using preset job description for role: ${jobRoleValue}`);
+    } else {
+      throw new Error('Please provide either a job description or select a target role.');
+    }
+  }
+  
   const improvements = await suggestResumeImprovements({
     resumeText: validatedFields.data.resumeText,
-    jobDescription: validatedFields.data.jobDescription,
+    jobDescription: finalJobDescription,
     previousAnalysis: input.previousAnalysis || undefined,
   });
-  await saveToDb(input.userId, { 
+  
+  // Prepare data for saving - exclude undefined values
+  const dataToSave: any = { 
     improvements, 
     resumeText: input.resumeText, 
-    jobDescription: input.jobDescription,
-    jobRole: input.jobRole || undefined,
-    jobUrl: input.jobUrl || undefined,
-  });
+    jobDescription: finalJobDescription,
+  };
+  
+  if (jobRoleValue) {
+    dataToSave.jobRole = jobRoleValue;
+  }
+  
+  if (input.jobUrl) {
+    dataToSave.jobUrl = input.jobUrl;
+  }
+  
+  await saveToDb(input.userId, dataToSave);
   return improvements;
 }
 

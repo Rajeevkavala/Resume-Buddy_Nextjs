@@ -68,9 +68,15 @@ export default function InterviewPage() {
       toast.error('Authentication Error', { description: 'You must be logged in to generate an interview quiz.' });
       return;
     }
-    if (!resumeText || !jobDescription) {
-      toast.error('Missing Content', {
-        description: 'Please provide both a resume and a job description on the dashboard.',
+    if (!resumeText) {
+      toast.error('Missing Resume', {
+        description: 'Please upload your resume on the dashboard.',
+      });
+      return;
+    }
+    if (!jobDescription && !jobRole) {
+      toast.error('Missing Job Information', {
+        description: 'Please provide either a job description or select a target role on the dashboard.',
       });
       return;
     }
@@ -93,14 +99,23 @@ export default function InterviewPage() {
             throw new Error("The AI failed to generate questions. Please try again.");
         }
         setInterview(result);
+        
         // We only save the result to the context/local storage, not the config that generated it.
-        saveUserData(user.uid, {
+        const dataToSave: any = {
             interview: result,
             resumeText,
             jobDescription,
-            jobRole: jobRole || undefined,
-            jobUrl: jobUrl || undefined,
-        });
+        };
+        
+        if (jobRole) {
+            dataToSave.jobRole = jobRole;
+        }
+        
+        if (jobUrl) {
+            dataToSave.jobUrl = jobUrl;
+        }
+        
+        saveUserData(user.uid, dataToSave);
         updateStoredValues(resumeText, jobDescription, jobRole, jobUrl);
         return result;
     });

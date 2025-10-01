@@ -92,14 +92,14 @@ export function EnhancedJobDescriptionInput({
 
   const getValidationStatus = () => {
     if (!value.trim()) {
-      return { variant: 'default' as const, message: 'Enter job description to get started' };
+      return { variant: 'default' as const, message: 'Optional: Leave empty to use a role-based preset' };
     }
     if (!isValidLength) {
       const wordsNeeded = Math.max(0, minWordCount - wordCount);
       const charsNeeded = Math.max(0, minCharCount - charCount);
       return { 
         variant: 'destructive' as const, 
-        message: `Need ${wordsNeeded} more words or ${charsNeeded} more characters` 
+        message: `Need ${wordsNeeded} more words or ${charsNeeded} more characters for custom description` 
       };
     }
     return { variant: 'default' as const, message: 'Good length for analysis!' };
@@ -115,6 +115,7 @@ export function EnhancedJobDescriptionInput({
             <FileText className="h-4 w-4 text-primary" />
           </div>
           Job Description
+          <span className="text-sm text-muted-foreground font-normal ml-1">(Optional)</span>
         </Label>
         <div className="flex items-center gap-2">
           <Badge 
@@ -139,7 +140,7 @@ export function EnhancedJobDescriptionInput({
             id="job-description"
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            placeholder="Paste the complete job description here including requirements, responsibilities, and company information..."
+            placeholder="Paste the job description here, or leave empty to use a role-based preset job description based on your selected target role..."
             className={`min-h-[400px] text-sm resize-y transition-colors ${
               value && !isValidLength 
                 ? 'border-orange-300 focus:border-orange-400 focus:ring-orange-200 dark:border-orange-700 dark:focus:border-orange-600' 
