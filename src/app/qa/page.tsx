@@ -18,7 +18,7 @@ import { QASkeleton } from '@/components/ui/page-skeletons';
 type Topic = "General" | "Technical" | "Work Experience" | "Projects" | "Career Goals" | "Education";
 
 export default function QAPage() {
-  const { resumeText, jobDescription, qa, setQa, storedResumeText, storedJobDescription, updateStoredValues, isDataLoaded } = useContext(ResumeContext);
+  const { resumeText, jobDescription, jobRole, jobUrl, qa, setQa, storedResumeText, storedJobDescription, storedJobRole, storedJobUrl, updateStoredValues, isDataLoaded } = useContext(ResumeContext);
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
@@ -44,7 +44,10 @@ export default function QAPage() {
 
 
 
-  const hasDataChanged = !!(resumeText && resumeText !== storedResumeText) || !!(jobDescription && jobDescription !== storedJobDescription);
+  const hasDataChanged = !!(resumeText && resumeText !== storedResumeText) || 
+                         !!(jobDescription && jobDescription !== storedJobDescription) ||
+                         !!(jobRole && jobRole !== storedJobRole) ||
+                         !!(jobUrl && jobUrl !== storedJobUrl);
 
   const handleGeneration = async (topic: Topic, numQuestions: number) => {
     if (!user) {
@@ -66,15 +69,25 @@ export default function QAPage() {
       setQa({ [topic]: null } as any);
     }
 
-    const promise = runQAGenerationAction({ userId: user.uid, resumeText, jobDescription, topic, numQuestions }).then((result) => {
+    const promise = runQAGenerationAction({ 
+      userId: user.uid, 
+      resumeText, 
+      jobDescription, 
+      topic, 
+      numQuestions,
+      jobRole,
+      jobUrl,
+    }).then((result) => {
         const newQaData = { ...qa, [topic]: result } as any;
         setQa(newQaData);
         saveUserData(user.uid, {
             qa: newQaData,
             resumeText,
             jobDescription,
+            jobRole: jobRole || undefined,
+            jobUrl: jobUrl || undefined,
         });
-        updateStoredValues(resumeText, jobDescription);
+        updateStoredValues(resumeText, jobDescription, jobRole, jobUrl);
         return result;
     });
 

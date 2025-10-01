@@ -1,26 +1,48 @@
 
 'use client';
 
-import { UploadCloud, File as FileIcon, X } from 'lucide-react';
-import { useCallback } from 'react';
+import { UploadCloud, File as FileIcon, X, Loader2, CheckCircle2 } from 'lucide-react';
+import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Button } from './ui/button';
+import { toast } from 'sonner';
 
 interface FileUploaderProps {
   file: File | null;
   setFile: (file: File | null) => void;
   setPreview: (preview: string) => void;
+  onAutoExtract?: (file: File) => Promise<void>;
+  isExtracting?: boolean;
 }
 
-export default function FileUploader({ file, setFile, setPreview }: FileUploaderProps) {
+export default function FileUploader({ 
+  file, 
+  setFile, 
+  setPreview, 
+  onAutoExtract,
+  isExtracting = false 
+}: FileUploaderProps) {
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
+    async (acceptedFiles: File[]) => {
       if (acceptedFiles.length > 0) {
-        setFile(acceptedFiles[0]);
+        const selectedFile = acceptedFiles[0];
+        setFile(selectedFile);
         setPreview(''); // Clear previous text preview
+        
+        // Auto-extract text if callback provided
+        if (onAutoExtract) {
+          toast.promise(
+            onAutoExtract(selectedFile),
+            {
+              loading: 'Extracting text from resume...',
+              success: 'Resume text extracted successfully! 🎉',
+              error: 'Failed to extract text. Please try again.',
+            }
+          );
+        }
       }
     },
-    [setFile, setPreview]
+    [setFile, setPreview, onAutoExtract]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -46,15 +68,27 @@ export default function FileUploader({ file, setFile, setPreview }: FileUploader
         <div className="group relative rounded-xl border p-4 transition-all duration-300 hover:shadow-md bg-muted/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <FileIcon className="h-5 w-5 text-primary" />
+              <div className={`p-2 rounded-lg ${
+                isExtracting 
+                  ? 'bg-blue-100 dark:bg-blue-900/30' 
+                  : 'bg-primary/10'
+              }`}>
+                {isExtracting ? (
+                  <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                ) : (
+                  <FileIcon className="h-5 w-5 text-primary" />
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold truncate max-w-[250px]">
                   {file.name}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB • Ready to process
+                  {(file.size / 1024 / 1024).toFixed(2)} MB • {
+                    isExtracting 
+                      ? 'Extracting text...' 
+                      : 'Ready to process'
+                  }
                 </div>
               </div>
             </div>
@@ -62,13 +96,16 @@ export default function FileUploader({ file, setFile, setPreview }: FileUploader
               variant="ghost"
               size="icon"
               onClick={handleRemoveFile}
-              className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+              disabled={isExtracting}
+              className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors disabled:opacity-50"
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
-          {/* Success indicator */}
-          <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full opacity-60" />
+          {/* Status indicator */}
+          {!isExtracting && (
+            <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full opacity-60" />
+          )}
         </div>
       ) : (
         <div

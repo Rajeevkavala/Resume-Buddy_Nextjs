@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,8 @@ import {
   AlertCircle, 
   CheckCircle2, 
   Clipboard,
-  RefreshCw
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -75,9 +76,22 @@ export function JobUrlInput({
 }: JobUrlInputProps) {
   const [validation, setValidation] = useState<UrlValidation>({ isValid: false });
   const [isExtracting, setIsExtracting] = useState(false);
+  const [hasExtracted, setHasExtracted] = useState(false);
+  const [lastExtractedUrl, setLastExtractedUrl] = useState('');
+  const previousValueRef = useRef('');
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     setValidation(validateUrl(value));
+    
+    // Auto-extract on first valid URL paste/entry
+    if (isInitialMount.current && value && validateUrl(value).isValid) {
+      isInitialMount.current = false;
+      // Small delay to ensure UI is ready
+      setTimeout(() => {
+        extractJobDescription(true);
+      }, 300);
+    }
   }, [value]);
 
   const handlePasteFromClipboard = async () => {
@@ -94,9 +108,16 @@ export function JobUrlInput({
     }
   };
 
-  const extractJobDescription = async () => {
+  const extractJobDescription = async (isAutoExtract = false) => {
     if (!validation.isValid || !value.trim()) {
-      toast.error('Please enter a valid job URL first');
+      if (!isAutoExtract) {
+        toast.error('Please enter a valid job URL first');
+      }
+      return;
+    }
+
+    // Don't auto-extract if we've already extracted this URL
+    if (isAutoExtract && lastExtractedUrl === value.trim()) {
       return;
     }
 
@@ -112,13 +133,24 @@ export function JobUrlInput({
         if (onJobDescriptionExtracted) {
           onJobDescriptionExtracted(result.data.description);
         }
-        toast.success('Job description extracted successfully!');
+        setHasExtracted(true);
+        setLastExtractedUrl(value.trim());
+        
+        if (isAutoExtract) {
+          toast.success('Job description auto-filled from URL! 🎉');
+        } else {
+          toast.success('Job description extracted successfully!');
+        }
       } else {
-        toast.error(result.error || 'Failed to extract job description');
+        if (!isAutoExtract) {
+          toast.error(result.error || 'Failed to extract job description');
+        }
       }
     } catch (error: any) {
       console.error('Job extraction error:', error);
-      toast.error('Failed to extract job description. Please copy it manually.');
+      if (!isAutoExtract) {
+        toast.error('Failed to extract job description. Please copy it manually.');
+      }
     } finally {
       setIsExtracting(false);
     }
@@ -208,25 +240,35 @@ export function JobUrlInput({
           </div>
         )}
 
-        {validation.isValid && (
+        {/* Show extraction status or manual button */}
+        {validation.isValid && isExtracting && (
+          <Alert className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+            <AlertDescription className="text-sm text-blue-900 dark:text-blue-100">
+              Extracting job description from URL...
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {validation.isValid && !isExtracting && hasExtracted && lastExtractedUrl === value.trim() && (
+          <Alert className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-sm text-green-900 dark:text-green-100">
+              Job description extracted successfully!
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {validation.isValid && !isExtracting && (!hasExtracted || lastExtractedUrl !== value.trim()) && (
           <Button
             type="button"
-            onClick={extractJobDescription}
+            onClick={() => extractJobDescription(false)}
             disabled={isExtracting}
             variant="secondary"
             className="w-full"
           >
-            {isExtracting ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Extracting job description...
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="h-4 w-4 mr-2" />
-                Auto-fill job description from URL
-              </>
-            )}
+            <CheckCircle2 className="h-4 w-4 mr-2" />
+            {hasExtracted ? 'Re-extract job description' : 'Auto-fill job description from URL'}
           </Button>
         )}
       </div>

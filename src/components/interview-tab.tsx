@@ -690,13 +690,6 @@ export default function InterviewTab({
 
   return (
     <div className="space-y-6">
-      {/* Desktop Header */}
-      <div className="hidden md:flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Interview Quiz</h2>
-          <p className="text-muted-foreground">Test your knowledge with AI-generated interview questions</p>
-        </div>
-      </div>
       
       {/* Interview Quiz Section - Always Expanded When Active */}
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-transparent">

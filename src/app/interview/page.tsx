@@ -26,7 +26,7 @@ export type InterviewType = "Technical" | "Behavioral" | "Leadership" | "General
 export type DifficultyLevel = "Entry" | "Mid" | "Senior" | "Executive";
 
 export default function InterviewPage() {
-  const { resumeText, jobDescription, interview, setInterview, updateStoredValues, isDataLoaded } = useContext(ResumeContext);
+  const { resumeText, jobDescription, jobRole, jobUrl, interview, setInterview, updateStoredValues, isDataLoaded } = useContext(ResumeContext);
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
@@ -78,6 +78,8 @@ export default function InterviewPage() {
       userId: user.uid,
       resumeText,
       jobDescription,
+      jobRole,
+      jobUrl,
       ...config,
     };
 
@@ -92,8 +94,10 @@ export default function InterviewPage() {
             interview: result,
             resumeText,
             jobDescription,
+            jobRole: jobRole || undefined,
+            jobUrl: jobUrl || undefined,
         });
-        updateStoredValues(resumeText, jobDescription);
+        updateStoredValues(resumeText, jobDescription, jobRole, jobUrl);
         return result;
     });
 

@@ -23,7 +23,7 @@ const AnalysisTab = dynamic(() => import('@/components/analysis-tab'), {
 });
 
 export default function AnalysisPage() {
-  const { resumeText, jobDescription, analysis, setAnalysis, storedResumeText, storedJobDescription, updateStoredValues, isDataLoaded } = useContext(ResumeContext);
+  const { resumeText, jobDescription, jobRole, jobUrl, analysis, setAnalysis, storedResumeText, storedJobDescription, storedJobRole, storedJobUrl, updateStoredValues, isDataLoaded } = useContext(ResumeContext);
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
@@ -51,7 +51,10 @@ export default function AnalysisPage() {
 
 
   // Data now comes from context, which is loaded from local storage
-  const hasDataChanged = !!(resumeText && resumeText !== storedResumeText) || !!(jobDescription && jobDescription !== storedJobDescription);
+  const hasDataChanged = !!(resumeText && resumeText !== storedResumeText) || 
+                         !!(jobDescription && jobDescription !== storedJobDescription) ||
+                         !!(jobRole && jobRole !== storedJobRole) ||
+                         !!(jobUrl && jobUrl !== storedJobUrl);
 
   const handleGeneration = async () => {
     if (!user) {
@@ -70,7 +73,13 @@ export default function AnalysisPage() {
     setIsLoading(true);
     setAnalysis(null); // Clear previous analysis
 
-    const promise = runAnalysisAction({ userId: user.uid, resumeText, jobDescription }).then((result) => {
+    const promise = runAnalysisAction({ 
+      userId: user.uid, 
+      resumeText, 
+      jobDescription,
+      jobRole,
+      jobUrl,
+    }).then((result) => {
         startTransition(() => {
           setAnalysis(result);
           // Update local storage asynchronously
@@ -79,8 +88,10 @@ export default function AnalysisPage() {
               analysis: result,
               resumeText,
               jobDescription,
+              jobRole: jobRole || undefined,
+              jobUrl: jobUrl || undefined,
             });
-            updateStoredValues(resumeText, jobDescription); // Update stored values efficiently
+            updateStoredValues(resumeText, jobDescription, jobRole, jobUrl); // Update stored values efficiently
           });
         });
         return result;

@@ -111,6 +111,26 @@ export default function Dashboard() {
       },
     });
   };
+
+  // Auto-extract function for file uploader
+  const handleAutoExtract = async (file: File) => {
+    const formData = new FormData();
+    formData.append('resume', file);
+
+    setIsLoading(true);
+
+    try {
+      const result = await extractText(formData);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      setResumeText(result.text || '');
+    } catch (error: any) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   const handleSaveData = async () => {
     if (!user) {
@@ -388,25 +408,9 @@ export default function Dashboard() {
                     file={resumeFile}
                     setFile={setResumeFile}
                     setPreview={setResumeText}
+                    onAutoExtract={handleAutoExtract}
+                    isExtracting={isLoading}
                   />
-                  
-                  {resumeFile && !resumeText && !isLoading && (
-                    <Button
-                      onClick={handleProcessResume}
-                      disabled={isLoading}
-                      className="w-full"
-                      size="lg"
-                    >
-                      <FileText className="mr-2 w-4 h-4" />
-                      Process Resume
-                    </Button>
-                  )}
-                  
-                  {isLoading && (
-                    <div className="space-y-4">
-                      <FileProcessingLoading fileName={resumeFile?.name} />
-                    </div>
-                  )}
                   
                   {resumeText && (
                     <div className="space-y-3">
@@ -450,11 +454,84 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* Ready for Analysis Banner */}
+          {/* Bottom Action Buttons - Duplicate for better accessibility */}
+          {(resumeText || jobDescription || jobRole || jobUrl) && (
+            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+              <CardContent className="p-6">
+                <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="lg" disabled={isSaving} className="min-w-[180px]">
+                        {isSaving ? (
+                          <LoadingSpinner size="sm" />
+                        ) : (
+                          <Save className="mr-2 w-4 h-4" />
+                        )}
+                        {isSaving ? 'Saving...' : 'Save Data'}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Save Data</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will save your resume text and job description to the database. 
+                          Any previous AI analysis results will be cleared and you'll need to regenerate them.
+                          Are you sure you want to continue?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleSaveData}>
+                          Yes, Save Data
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="lg" className="min-w-[180px]">
+                        <Trash2 className="mr-2 w-4 h-4" />
+                        Clear All
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Clear All Data</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete your resume text, 
+                          job description, and all AI analysis results from the database and local storage.
+                          Are you sure you want to continue?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={handleClearData}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Yes, Clear All Data
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+                
+                {/* Helper text */}
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    💡 Tip: Save your data before generating AI analyses to persist your resume and job description
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Ready for Analysis Banner - Bottom Position */}
           {resumeText && jobDescription && (
             <Card className="border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
                       <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
@@ -468,7 +545,8 @@ export default function Dashboard() {
                   </div>
                   <Button 
                     onClick={() => router.push('/analysis')}
-                    className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-600"
+                    size="lg"
+                    className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-600 min-w-[160px]"
                   >
                     Start Analysis
                   </Button>

@@ -7,11 +7,12 @@ import type { GenerateInterviewQuestionsInput } from '@/ai/flows/generate-interv
 import {generateInterviewQuestions} from '@/ai/flows/generate-interview-questions';
 import {generateResumeQA} from '@/ai/flows/generate-resume-qa';
 import {suggestResumeImprovements} from '@/ai/flows/suggest-resume-improvements';
+import {structureJobDescription} from '@/ai/flows/structure-job-description';
 import {Packer, Document, Paragraph, TextRun} from 'docx';
 import mammoth from 'mammoth';
 import pdf from 'pdf-parse-fork';
 import { saveData as saveToDb, clearData as clearFromDb, updateUserProfileInDb } from '@/lib/firestore';
-import type { AnalysisResult } from '@/lib/types';
+import type { AnalysisResult, JobRole } from '@/lib/types';
 import type { AnalyzeResumeContentOutput } from '@/ai/flows/analyze-resume-content';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import axios from 'axios';
@@ -98,13 +99,21 @@ export async function runAnalysisAction(input: {
   userId: string;
   resumeText: string;
   jobDescription: string;
+  jobRole?: JobRole | '';
+  jobUrl?: string;
 }) {
   const validatedFields = baseSchema.safeParse(input);
   if (!validatedFields.success) {
     throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
   }
   const analysis = await analyzeResumeContent(validatedFields.data);
-  await saveToDb(input.userId, { analysis, resumeText: input.resumeText, jobDescription: input.jobDescription });
+  await saveToDb(input.userId, { 
+    analysis, 
+    resumeText: input.resumeText, 
+    jobDescription: input.jobDescription,
+    jobRole: input.jobRole || undefined,
+    jobUrl: input.jobUrl || undefined,
+  });
   return analysis;
 }
 
@@ -114,6 +123,8 @@ export async function runQAGenerationAction(input: {
   jobDescription: string;
   topic: "General" | "Technical" | "Work Experience" | "Projects" | "Career Goals" | "Education";
   numQuestions: number;
+  jobRole?: JobRole | '';
+  jobUrl?: string;
 }) {
   const validatedFields = qaSchema.safeParse(input);
   if (!validatedFields.success) {
@@ -129,19 +140,27 @@ export async function runQAGenerationAction(input: {
       [`qa.${input.topic}`]: qaResult,
       resumeText: input.resumeText,
       jobDescription: input.jobDescription,
+      jobRole: input.jobRole || undefined,
+      jobUrl: input.jobUrl || undefined,
   };
 
   await saveToDb(input.userId, dataToSave);
   return qaResult;
 }
 
-export async function runInterviewGenerationAction(input: GenerateInterviewQuestionsInput & { userId: string }) {
+export async function runInterviewGenerationAction(input: GenerateInterviewQuestionsInput & { userId: string; jobRole?: JobRole | ''; jobUrl?: string }) {
   const validatedFields = interviewSchema.safeParse(input);
   if (!validatedFields.success) {
     throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
   }
   const interview = await generateInterviewQuestions(validatedFields.data);
-  await saveToDb(input.userId, { interview, resumeText: input.resumeText, jobDescription: input.jobDescription });
+  await saveToDb(input.userId, { 
+    interview, 
+    resumeText: input.resumeText, 
+    jobDescription: input.jobDescription,
+    jobRole: input.jobRole || undefined,
+    jobUrl: input.jobUrl || undefined,
+  });
   return interview;
 }
 
@@ -150,6 +169,8 @@ export async function runImprovementsGenerationAction(input: {
   resumeText: string;
   jobDescription: string;
   previousAnalysis?: AnalyzeResumeContentOutput | null;
+  jobRole?: JobRole | '';
+  jobUrl?: string;
 }) {
   const validatedFields = baseSchema.safeParse(input);
   if (!validatedFields.success) {
@@ -160,7 +181,13 @@ export async function runImprovementsGenerationAction(input: {
     jobDescription: validatedFields.data.jobDescription,
     previousAnalysis: input.previousAnalysis || undefined,
   });
-  await saveToDb(input.userId, { improvements, resumeText: input.resumeText, jobDescription: input.jobDescription });
+  await saveToDb(input.userId, { 
+    improvements, 
+    resumeText: input.resumeText, 
+    jobDescription: input.jobDescription,
+    jobRole: input.jobRole || undefined,
+    jobUrl: input.jobUrl || undefined,
+  });
   return improvements;
 }
 
@@ -331,133 +358,165 @@ export async function extractJobDescriptionFromUrl(url: string) {
     
     // Set headers to mimic a real browser
     const headers = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.5',
-      'Accept-Encoding': 'gzip, deflate',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept-Encoding': 'gzip, deflate, br',
       'Connection': 'keep-alive',
+      'Upgrade-Insecure-Requests': '1',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Cache-Control': 'max-age=0',
     };
 
     // Fetch the webpage
     const response = await axios.get(validatedData.url, { 
       headers,
-      timeout: 10000, // 10 second timeout
-      maxRedirects: 3,
+      timeout: 15000, // 15 second timeout
+      maxRedirects: 5,
+      validateStatus: (status) => status < 500, // Accept 4xx errors too
     });
 
     const html = response.data;
     const $ = cheerio.load(html);
 
-    // Extract job information based on common job site patterns
-    let jobTitle = '';
-    let company = '';
-    let location = '';
-    let description = '';
-    let requirements = '';
-    let benefits = '';
+    // Remove unnecessary elements but keep the content
+    $('script, style, noscript, iframe, nav, header, footer, aside').remove();
+    $('<!--').remove();
 
-    // LinkedIn job posts
-    if (url.includes('linkedin.com')) {
-      jobTitle = $('.t-24.t-bold.inline').text().trim() || 
-                $('h1[data-test-id="job-title"]').text().trim() ||
-                $('h1.jobs-unified-top-card__job-title').text().trim();
-      
-      company = $('.jobs-unified-top-card__company-name').text().trim() ||
-               $('a[data-test-id="job-poster-name"]').text().trim();
-      
-      location = $('.jobs-unified-top-card__bullet').text().trim();
-      
-      description = $('.jobs-description__content').text().trim() ||
-                   $('.jobs-box__html-content').text().trim();
-    }
-    
-    // Indeed job posts
-    else if (url.includes('indeed.com')) {
-      jobTitle = $('[data-testid="jobsearch-JobInfoHeader-title"]').text().trim() ||
-                $('h1.jobsearch-JobInfoHeader-title').text().trim();
-      
-      company = $('[data-testid="inlineHeader-companyName"]').text().trim() ||
-               $('.jobsearch-CompanyInfoContainer').text().trim();
-      
-      location = $('[data-testid="job-location"]').text().trim();
-      
-      description = $('#jobDescriptionText').text().trim() ||
-                   $('.jobsearch-jobDescriptionText').text().trim();
-    }
-    
-    // Glassdoor job posts
-    else if (url.includes('glassdoor.com')) {
-      jobTitle = $('[data-test="job-title"]').text().trim() ||
-                $('.css-17x2pwl.e11nt52q6').text().trim();
-      
-      company = $('[data-test="employer-name"]').text().trim();
-      location = $('[data-test="job-location"]').text().trim();
-      description = $('[data-test="jobDescriptionContent"]').text().trim();
-    }
-    
-    // Generic fallback for other sites
-    else {
-      // Try common selectors
-      jobTitle = $('h1').first().text().trim() ||
-                $('.job-title, .position-title, [class*="title"]').first().text().trim();
-      
-      company = $('.company-name, [class*="company"]').first().text().trim();
-      location = $('.location, [class*="location"]').first().text().trim();
-      
-      // Look for job description in common containers
-      description = $('.job-description, .description, [class*="description"], [class*="content"]')
-                   .map((i, el) => $(el).text().trim())
-                   .get()
-                   .join('\n\n')
-                   .substring(0, 3000); // Limit to prevent too much text
-    }
-
-    // Clean up the extracted text
+    // Helper function to clean text
     const cleanText = (text: string) => {
       return text
         .replace(/\s+/g, ' ') // Replace multiple whitespace with single space
-        .replace(/\n\s*\n/g, '\n\n') // Clean up line breaks
+        .replace(/\n\s*\n\s*\n+/g, '\n\n') // Clean up excessive line breaks
         .trim();
     };
 
-    // Format the extracted job description
-    let formattedDescription = '';
-    
-    if (jobTitle) formattedDescription += `Job Title: ${cleanText(jobTitle)}\n\n`;
-    if (company) formattedDescription += `Company: ${cleanText(company)}\n`;
-    if (location) formattedDescription += `Location: ${cleanText(location)}\n\n`;
-    
-    if (description) {
-      formattedDescription += `Job Description:\n${cleanText(description)}`;
-    }
+    // STEP 1: Extract full page content with priority-based approach
+    let rawContent = '';
+    let extractionMethod = '';
 
-    // If we didn't extract much, fall back to getting all text content
-    if (formattedDescription.length < 200) {
-      const bodyText = $('body').text().trim();
-      const cleanBodyText = cleanText(bodyText);
-      
-      if (cleanBodyText.length > 200) {
-        formattedDescription = `Extracted content from: ${url}\n\n${cleanBodyText.substring(0, 2000)}...`;
+    // Try site-specific selectors first for better content quality
+    if (url.includes('linkedin.com')) {
+      const content = $('.jobs-description__content, .jobs-box__html-content, .description__text').text();
+      if (content.length > 500) {
+        rawContent = content;
+        extractionMethod = 'LinkedIn-specific';
+      }
+    } else if (url.includes('indeed.com')) {
+      const content = $('#jobDescriptionText, .jobsearch-jobDescriptionText, [id*="jobDescriptionText"]').text();
+      if (content.length > 500) {
+        rawContent = content;
+        extractionMethod = 'Indeed-specific';
+      }
+    } else if (url.includes('glassdoor.com')) {
+      const content = $('[data-test="jobDescriptionContent"], .jobDescriptionContent, [class*="JobDetails_jobDescription"]').text();
+      if (content.length > 500) {
+        rawContent = content;
+        extractionMethod = 'Glassdoor-specific';
+      }
+    } else if (url.includes('monster.com')) {
+      const content = $('[data-test-id="job-description-content"]').text();
+      if (content.length > 500) {
+        rawContent = content;
+        extractionMethod = 'Monster-specific';
+      }
+    } else if (url.includes('ziprecruiter.com')) {
+      const content = $('.job_description, [itemprop="description"]').text();
+      if (content.length > 500) {
+        rawContent = content;
+        extractionMethod = 'ZipRecruiter-specific';
       }
     }
 
-    if (!formattedDescription || formattedDescription.length < 100) {
+    // Fallback: Try main content containers
+    if (!rawContent || rawContent.length < 500) {
+      const selectors = [
+        'main',
+        'article',
+        '[role="main"]',
+        '[class*="job-description"]',
+        '[class*="jobDescription"]',
+        '[id*="description"]',
+        '.content',
+        '#content',
+      ];
+
+      for (const selector of selectors) {
+        const content = $(selector).text().trim();
+        if (content.length > rawContent.length && content.length > 500) {
+          rawContent = content;
+          extractionMethod = `Generic: ${selector}`;
+        }
+      }
+    }
+
+    // Final fallback: Get entire body content
+    if (!rawContent || rawContent.length < 500) {
+      rawContent = $('body').text().trim();
+      extractionMethod = 'Full body extraction';
+    }
+
+    // Clean the extracted content
+    rawContent = cleanText(rawContent);
+
+    // Validate we have enough content
+    if (!rawContent || rawContent.length < 200) {
       return {
         success: false,
-        error: 'Could not extract meaningful job description from this URL. The page might be protected or use dynamic content loading.',
+        error: 'Could not extract meaningful content from this URL. The page might be protected, use dynamic content loading, or require authentication.',
       };
     }
 
-    return {
-      success: true,
-      data: {
-        jobTitle: cleanText(jobTitle),
-        company: cleanText(company),
-        location: cleanText(location),
-        description: formattedDescription,
+    console.log(`[Job Extraction] Method: ${extractionMethod}, Content length: ${rawContent.length} chars`);
+
+    // STEP 2: Use AI to structure the raw content
+    try {
+      const structuredData = await structureJobDescription({
+        rawContent: rawContent.substring(0, 15000), // Limit to prevent token overflow
         url: validatedData.url,
-      },
-    };
+      });
+
+      // Validate that we got meaningful structured data
+      if (!structuredData.jobTitle || structuredData.responsibilities.length === 0) {
+        return {
+          success: false,
+          error: 'Could not identify job details from the content. Please ensure the URL points to a job posting.',
+        };
+      }
+
+      console.log(`[Job Extraction] AI structured: Title="${structuredData.jobTitle}", ` +
+                  `${structuredData.responsibilities.length} responsibilities, ` +
+                  `${structuredData.requiredSkills.length} skills`);
+
+      // Return the AI-structured data
+      return {
+        success: true,
+        data: {
+          jobTitle: structuredData.jobTitle,
+          company: structuredData.company || 'Not specified',
+          location: structuredData.location || 'Not specified',
+          description: structuredData.formattedDescription,
+          url: validatedData.url,
+        },
+      };
+
+    } catch (aiError: any) {
+      console.error('AI structuring error:', aiError);
+      
+      // If AI fails, return raw content as fallback
+      return {
+        success: true,
+        data: {
+          jobTitle: 'Job Position',
+          company: 'See description',
+          location: 'See description',
+          description: `Extracted content from: ${validatedData.url}\n\n${rawContent.substring(0, 3000)}`,
+          url: validatedData.url,
+        },
+      };
+    }
 
   } catch (error: any) {
     console.error('Job extraction error:', error);

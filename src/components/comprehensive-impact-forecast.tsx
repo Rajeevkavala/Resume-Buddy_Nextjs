@@ -260,38 +260,42 @@ const ComparisonChart = ({ atsScore, skillsMatch, quantifiedAchievements }: Comp
     >
       <Card className="group border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-transparent backdrop-blur-sm overflow-hidden hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 hover:border-primary/30">
         <CardHeader>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <motion.div 
-              className="p-2.5 rounded-xl bg-gradient-to-br from-primary/10 to-primary/20 group-hover:from-primary/20 group-hover:to-primary/30 transition-all duration-300"
+              className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-primary/10 to-primary/20 group-hover:from-primary/20 group-hover:to-primary/30 transition-all duration-300"
               whileHover={{ rotate: 5, scale: 1.1 }}
             >
-              <TrendingUp className="h-5 w-5 text-primary" />
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             </motion.div>
             <div>
-              <CardTitle className="text-xl font-bold group-hover:text-primary/90 transition-colors duration-300">
+              <CardTitle className="text-base sm:text-xl font-bold group-hover:text-primary/90 transition-colors duration-300">
                 Overall Impact Comparison
               </CardTitle>
-              <p className="text-sm text-muted-foreground group-hover:text-foreground/70 transition-colors duration-300">
+              <p className="text-xs sm:text-sm text-muted-foreground group-hover:text-foreground/70 transition-colors duration-300">
                 Visual comparison of before vs after metrics
               </p>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="h-72">
+          <div className="h-72 -ml-2 sm:ml-0">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <ComposedChart data={data} margin={{ top: 20, right: 10, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} />
                 <XAxis 
                   dataKey="metric" 
-                  tick={{ fontSize: 12, fill: '#6b7280' }}
+                  tick={{ fontSize: 10, fill: '#6b7280' }}
                   axisLine={false}
                   tickLine={false}
+                  angle={-15}
+                  textAnchor="end"
+                  height={60}
                 />
                 <YAxis 
-                  tick={{ fontSize: 12, fill: '#6b7280' }}
+                  tick={{ fontSize: 10, fill: '#6b7280' }}
                   axisLine={false}
                   tickLine={false}
+                  width={30}
                 />
                 <Tooltip 
                   formatter={(value: number, name: string) => {

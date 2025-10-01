@@ -46,12 +46,12 @@ const ImpactPieChart = ({ data, title }: { data: { name: string; value: number; 
         {/* Animated background gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-primary/3 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         
-        <CardHeader className="relative pb-3">
-          <CardTitle className="text-sm font-medium text-center text-muted-foreground group-hover:text-foreground transition-colors duration-300">
+        <CardHeader className="relative pb-2 sm:pb-3">
+          <CardTitle className="text-xs sm:text-sm font-medium text-center text-muted-foreground group-hover:text-foreground transition-colors duration-300">
             {title}
           </CardTitle>
         </CardHeader>
-        <CardContent className="relative">
+        <CardContent className="relative px-2 sm:px-6">
           <div className="h-28 sm:h-32 relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -59,8 +59,8 @@ const ImpactPieChart = ({ data, title }: { data: { name: string; value: number; 
                   data={data}
                   cx="50%"
                   cy="50%"
-                  innerRadius={20}
-                  outerRadius={window.innerWidth < 640 ? 40 : 50}
+                  innerRadius={18}
+                  outerRadius={window.innerWidth < 640 ? 38 : 50}
                   paddingAngle={3}
                   dataKey="value"
                   onMouseEnter={(_, index) => setHoveredIndex(index)}
@@ -175,30 +175,30 @@ const ImprovementTrendChart = ({ atsScore, skillsMatch, quantifiedAchievements }
     >
       <Card className="group border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-transparent hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 hover:border-primary/30 backdrop-blur-sm">
         <CardHeader>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <motion.div 
-              className="p-2.5 rounded-xl bg-gradient-to-br from-primary/10 to-primary/20 group-hover:from-primary/20 group-hover:to-primary/30 transition-all duration-300"
+              className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-primary/10 to-primary/20 group-hover:from-primary/20 group-hover:to-primary/30 transition-all duration-300"
               whileHover={{ rotate: 5, scale: 1.1 }}
             >
-              <TrendingUp className="h-5 w-5 text-primary" />
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             </motion.div>
             <div>
-              <CardTitle className="text-xl font-bold group-hover:text-primary/90 transition-colors duration-300">
+              <CardTitle className="text-base sm:text-xl font-bold group-hover:text-primary/90 transition-colors duration-300">
                 Improvement Trajectory
               </CardTitle>
-              <p className="text-sm text-muted-foreground group-hover:text-foreground/70 transition-colors duration-300">
+              <p className="text-xs sm:text-sm text-muted-foreground group-hover:text-foreground/70 transition-colors duration-300">
                 Visual progression of all metrics over time
               </p>
             </div>
           </div>
         </CardHeader>
         <CardContent className="relative">
-          <div className="h-48 sm:h-64 relative">
+          <div className="h-48 sm:h-64 relative -ml-2 sm:ml-0">
             {/* Background glow effect */}
             <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-lg" />
             
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data} margin={{ top: 10, right: 15, left: 10, bottom: 5 }}>
+              <AreaChart data={data} margin={{ top: 10, right: 5, left: -5, bottom: 5 }}>
                 <defs>
                   <linearGradient id="atsGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={COLORS.primary} stopOpacity={0.8} />
@@ -216,16 +216,18 @@ const ImprovementTrendChart = ({ atsScore, skillsMatch, quantifiedAchievements }
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} />
                 <XAxis 
                   dataKey="phase" 
-                  tick={{ fontSize: 10, fill: '#6b7280' }}
+                  tick={{ fontSize: 9, fill: '#6b7280' }}
                   axisLine={false}
                   tickLine={false}
-                  className="text-xs sm:text-sm"
+                  angle={-15}
+                  textAnchor="end"
+                  height={50}
                 />
                 <YAxis 
-                  tick={{ fontSize: 10, fill: '#6b7280' }}
+                  tick={{ fontSize: 9, fill: '#6b7280' }}
                   axisLine={false}
                   tickLine={false}
-                  className="text-xs sm:text-sm"
+                  width={25}
                 />
                 <Tooltip 
                   formatter={(value: number, name: string) => {

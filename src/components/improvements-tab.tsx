@@ -1,3 +1,4 @@
+4
 
 import React, { useState } from 'react';
 import type {SuggestResumeImprovementsOutput} from '@/ai/flows/suggest-resume-improvements';
@@ -267,18 +268,18 @@ export default function ImprovementsTab({
 
         <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-transparent">
             <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-primary/10">
                             <TrendingUp className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                            <CardTitle className="text-xl">Impact Forecast</CardTitle>
-                            <CardDescription>Projected improvements after AI enhancement</CardDescription>
+                            <CardTitle className="text-lg sm:text-xl">Impact Forecast</CardTitle>
+                            <CardDescription className="text-xs sm:text-sm">Projected improvements after AI enhancement</CardDescription>
                         </div>
                     </div>
                     
-                    <Button onClick={onGenerate} disabled={isLoading} variant="outline" size="sm" className="shrink-0 hover:bg-primary/5 transition-all duration-300">
+                    <Button onClick={onGenerate} disabled={isLoading} variant="outline" size="sm" className="w-full sm:w-auto shrink-0 hover:bg-primary/5 transition-all duration-300">
                         {isLoading ? (
                             <><div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>Regenerating...</>
                         ) : (
@@ -289,48 +290,50 @@ export default function ImprovementsTab({
             </CardHeader>
             <CardContent>
                 <Tabs defaultValue="comprehensive" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-gradient-to-r from-muted/70 via-muted/50 to-muted/70 backdrop-blur-md border border-primary/10 rounded-xl p-1 shadow-lg gap-1 sm:gap-0">
-                        <TabsTrigger 
-                            value="comprehensive" 
-                            className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/25 transition-all duration-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 dark:hover:text-blue-300 rounded-lg font-medium text-xs sm:text-sm p-1 sm:p-2"
-                        >
-                            <span className="relative z-10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1">
-                                <Sparkles className="h-3 w-3 sm:h-3 sm:w-3" />
-                                <span className="text-center leading-tight">Comprehensive</span>
-                            </span>
-                            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
-                        </TabsTrigger>
-                        <TabsTrigger 
-                            value="enhanced" 
-                            className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/25 transition-all duration-500 hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-300 rounded-lg font-medium text-xs sm:text-sm p-1 sm:p-2"
-                        >
-                            <span className="relative z-10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1">
-                                <TrendingUp className="h-3 w-3 sm:h-3 sm:w-3" />
-                                <span className="text-center leading-tight">Enhanced</span>
-                            </span>
-                            <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
-                        </TabsTrigger>
-                        <TabsTrigger 
-                            value="detailed" 
-                            className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/25 transition-all duration-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-700 dark:hover:text-purple-300 rounded-lg font-medium text-xs sm:text-sm p-1 sm:p-2"
-                        >
-                            <span className="relative z-10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1">
-                                <BarChart3 className="h-3 w-3 sm:h-3 sm:w-3" />
-                                <span className="text-center leading-tight">Charts</span>
-                            </span>
-                            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-violet-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
-                        </TabsTrigger>
-                        <TabsTrigger 
-                            value="simple" 
-                            className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-amber-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-orange-500/25 transition-all duration-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:text-orange-700 dark:hover:text-orange-300 rounded-lg font-medium text-xs sm:text-sm p-1 sm:p-2"
-                        >
-                            <span className="relative z-10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1">
-                                <Target className="h-3 w-3 sm:h-3 sm:w-3" />
-                                <span className="text-center leading-tight">Simple</span>
-                            </span>
-                            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-amber-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
-                        </TabsTrigger>
-                    </TabsList>
+                    <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+                        <TabsList className="inline-flex sm:grid w-auto sm:w-full grid-cols-4 bg-gradient-to-r from-muted/70 via-muted/50 to-muted/70 backdrop-blur-md border border-primary/10 rounded-xl p-1 shadow-lg gap-1 min-w-full sm:min-w-0">
+                            <TabsTrigger 
+                                value="comprehensive" 
+                                className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/25 transition-all duration-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 dark:hover:text-blue-300 rounded-lg font-medium text-[9px] sm:text-sm px-2 py-2 sm:p-2 whitespace-nowrap flex-shrink-0"
+                            >
+                                <span className="relative z-10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1">
+                                    <Sparkles className="h-3 w-3" />
+                                    <span className="text-center leading-tight">Comprehensive</span>
+                                </span>
+                                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
+                            </TabsTrigger>
+                            <TabsTrigger 
+                                value="enhanced" 
+                                className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/25 transition-all duration-500 hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-300 rounded-lg font-medium text-[9px] sm:text-sm px-2 py-2 sm:p-2 whitespace-nowrap flex-shrink-0"
+                            >
+                                <span className="relative z-10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1">
+                                    <TrendingUp className="h-3 w-3" />
+                                    <span className="text-center leading-tight">Enhanced</span>
+                                </span>
+                                <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
+                            </TabsTrigger>
+                            <TabsTrigger 
+                                value="detailed" 
+                                className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/25 transition-all duration-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-700 dark:hover:text-purple-300 rounded-lg font-medium text-[9px] sm:text-sm px-2 py-2 sm:p-2 whitespace-nowrap flex-shrink-0"
+                            >
+                                <span className="relative z-10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1">
+                                    <BarChart3 className="h-3 w-3" />
+                                    <span className="text-center leading-tight">Charts</span>
+                                </span>
+                                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-violet-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
+                            </TabsTrigger>
+                            <TabsTrigger 
+                                value="simple" 
+                                className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-amber-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-orange-500/25 transition-all duration-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:text-orange-700 dark:hover:text-orange-300 rounded-lg font-medium text-[9px] sm:text-sm px-2 py-2 sm:p-2 whitespace-nowrap flex-shrink-0"
+                            >
+                                <span className="relative z-10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1">
+                                    <Target className="h-3 w-3" />
+                                    <span className="text-center leading-tight">Total Impact</span>
+                                </span>
+                                <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-amber-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
                     
                     <TabsContent value="comprehensive" className="mt-6 animate-in fade-in-0 slide-in-from-bottom-2 duration-500">
                         <div className="relative">
