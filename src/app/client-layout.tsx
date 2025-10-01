@@ -50,6 +50,11 @@ function ConditionalLayoutWrapper({ children }: { children: ReactNode }) {
   );
 }
 
+// Dynamically import WebVitals for performance monitoring
+const WebVitals = dynamic(() => import('@/components/web-vitals').then(mod => ({ default: mod.WebVitals })), {
+  ssr: false,
+});
+
 export default function ClientLayout({ children }: ClientLayoutProps) {
   return (
     <PrivacyGuard>
@@ -66,6 +71,7 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
             </ConditionalLayoutWrapper>
             <Toaster richColors />
             <ClientServiceWorker />
+            <WebVitals />
           </ResumeProvider>
         </AuthProvider>
       </ThemeProvider>
