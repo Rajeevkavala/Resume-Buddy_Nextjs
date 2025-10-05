@@ -30,11 +30,13 @@ import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from '.
 import EnhancedImpactForecast from './enhanced-impact-forecast';
 import ImpactVisualization from './impact-visualization';
 import ComprehensiveImpactForecast from './comprehensive-impact-forecast';
+import { TemplateExportDialog } from './template-export-dialog';
+import type { TemplateMetadata, TemplateCustomization } from '@/lib/types';
 
 interface ImprovementsTabProps {
   improvements: SuggestResumeImprovementsOutput | null;
   originalResume: string;
-  onExport: (format: 'docx' | 'pdf', filename?: string) => void;
+  onExport: (format: 'docx' | 'pdf', filename?: string, template?: TemplateMetadata, customization?: TemplateCustomization) => void;
   onGenerate: () => void;
   isLoading: boolean;
   hasDataChanged?: boolean;
@@ -601,14 +603,14 @@ export default function ImprovementsTab({
           </div>
           
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <ExportDialog format="docx" onExport={onExport}>
+            <TemplateExportDialog format="docx" onExport={onExport}>
               <Button className="w-full sm:w-auto bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all duration-300 text-sm sm:text-base">
                 <FileText className="mr-2 h-4 w-4" />
                 Export as DOCX
               </Button>
-            </ExportDialog>
+            </TemplateExportDialog>
             
-            <ExportDialog format="pdf" onExport={onExport}>
+            <TemplateExportDialog format="pdf" onExport={onExport}>
               <Button 
                 variant="outline" 
                 className="w-full sm:w-auto hover:bg-primary/5 border-primary/20 text-sm sm:text-base"
@@ -616,7 +618,7 @@ export default function ImprovementsTab({
                 <Download className="mr-2 h-4 w-4" />
                 Export as PDF
               </Button>
-            </ExportDialog>
+            </TemplateExportDialog>
           </div>
         </CardContent>
       </Card>

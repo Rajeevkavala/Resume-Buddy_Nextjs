@@ -8,7 +8,8 @@ import {generateInterviewQuestions} from '@/ai/flows/generate-interview-question
 import {generateResumeQA} from '@/ai/flows/generate-resume-qa';
 import {suggestResumeImprovements} from '@/ai/flows/suggest-resume-improvements';
 import {structureJobDescription} from '@/ai/flows/structure-job-description';
-import {Packer, Document, Paragraph, TextRun} from 'docx';
+import {parseResumeIntelligently} from '@/ai/flows/parse-resume-intelligently';
+import {Packer, Document, Paragraph, TextRun, HeadingLevel} from 'docx';
 import mammoth from 'mammoth';
 import pdf from 'pdf-parse-fork';
 import { saveData as saveToDb, clearData as clearFromDb, updateUserProfileInDb } from '@/lib/firestore';
@@ -78,7 +79,6 @@ export async function extractText(
       };
     }
   } catch (error) {
-    console.error('Error extracting text:', error);
     return {error: 'Failed to extract text from the file.'};
   }
 }
@@ -114,7 +114,6 @@ export async function runAnalysisAction(input: {
   if (shouldUsePreset(finalJobDescription, jobRoleValue)) {
     if (jobRoleValue) {
       finalJobDescription = getJobDescriptionForRole(jobRoleValue);
-      console.log(`[Analysis] Using preset job description for role: ${jobRoleValue}`);
     } else {
       throw new Error('Please provide either a job description or select a target role.');
     }
@@ -166,7 +165,6 @@ export async function runQAGenerationAction(input: {
   if (shouldUsePreset(finalJobDescription, jobRoleValue)) {
     if (jobRoleValue) {
       finalJobDescription = getJobDescriptionForRole(jobRoleValue);
-      console.log(`[QA] Using preset job description for role: ${jobRoleValue}`);
     }
   }
   
@@ -209,7 +207,6 @@ export async function runInterviewGenerationAction(input: GenerateInterviewQuest
   if (shouldUsePreset(finalJobDescription, jobRoleValue)) {
     if (jobRoleValue) {
       finalJobDescription = getJobDescriptionForRole(jobRoleValue);
-      console.log(`[Interview] Using preset job description for role: ${jobRoleValue}`);
     } else {
       throw new Error('Please provide either a job description or select a target role.');
     }
@@ -263,7 +260,6 @@ export async function runImprovementsGenerationAction(input: {
   if (shouldUsePreset(finalJobDescription, jobRoleValue)) {
     if (jobRoleValue) {
       finalJobDescription = getJobDescriptionForRole(jobRoleValue);
-      console.log(`[Improvements] Using preset job description for role: ${jobRoleValue}`);
     } else {
       throw new Error('Please provide either a job description or select a target role.');
     }
@@ -321,15 +317,98 @@ export async function updateUserProfile(userId: string, formData: FormData): Pro
 }
 
 export async function exportDocx(text: string) {
+  if (!text || text.trim().length === 0) {
+    throw new Error('Resume text is empty');
+  }
+
+  // Parse the text into sections and format accordingly
+  const sections = text.split('\n\n');
+  const paragraphs: Paragraph[] = [];
+
+  for (const section of sections) {
+    const lines = section.split('\n').filter(line => line.trim());
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      // Detect headers (all caps, ends with colon, or starts with ###)
+      const isHeader = line === line.toUpperCase() || 
+                      line.endsWith(':') || 
+                      line.startsWith('#');
+      
+      // Clean markdown
+      const cleanLine = line.replace(/^#+\s*/, '').replace(/\*\*/g, '');
+      
+      if (isHeader) {
+        // Create header paragraph
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: cleanLine,
+                bold: true,
+                size: 28, // 14pt
+                color: '1a1a1a',
+              })
+            ],
+            spacing: {
+              before: i === 0 ? 0 : 200, // Extra space before headers (except first)
+              after: 100,
+            },
+            heading: HeadingLevel.HEADING_2,
+          })
+        );
+      } else {
+        // Regular paragraph with better formatting
+        // Check if it's a bullet point
+        const isBullet = line.startsWith('•') || line.startsWith('-') || line.startsWith('*');
+        const displayText = isBullet ? cleanLine.replace(/^[•\-*]\s*/, '') : cleanLine;
+        
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: displayText,
+                size: 22, // 11pt
+                color: '333333',
+              })
+            ],
+            spacing: {
+              before: 40,
+              after: 40,
+            },
+            bullet: isBullet ? { level: 0 } : undefined,
+          })
+        );
+      }
+    }
+    
+    // Add spacing between sections
+    if (sections.indexOf(section) < sections.length - 1) {
+      paragraphs.push(
+        new Paragraph({
+          children: [new TextRun('')],
+          spacing: { before: 100, after: 100 },
+        })
+      );
+    }
+  }
+
   const doc = new Document({
     sections: [
       {
-        children: text.split('\n').map(
-          p =>
-            new Paragraph({
-              children: [new TextRun(p)],
-            })
-        ),
+        properties: {
+          page: {
+            margin: {
+              top: 720,    // 0.5 inch
+              right: 720,
+              bottom: 720,
+              left: 720,
+            },
+          },
+        },
+        children: paragraphs,
       },
     ],
   });
@@ -398,7 +477,6 @@ export async function enhanceJobDescriptionAction(input: {
       improvements,
     };
   } catch (error: any) {
-    console.error('Job description enhancement error:', error);
     return {
       originalDescription: input.jobDescription,
       enhancedDescription: input.jobDescription,
@@ -572,8 +650,6 @@ export async function extractJobDescriptionFromUrl(url: string) {
       };
     }
 
-    console.log(`[Job Extraction] Method: ${extractionMethod}, Content length: ${rawContent.length} chars`);
-
     // STEP 2: Use AI to structure the raw content
     try {
       const structuredData = await structureJobDescription({
@@ -589,10 +665,6 @@ export async function extractJobDescriptionFromUrl(url: string) {
         };
       }
 
-      console.log(`[Job Extraction] AI structured: Title="${structuredData.jobTitle}", ` +
-                  `${structuredData.responsibilities.length} responsibilities, ` +
-                  `${structuredData.requiredSkills.length} skills`);
-
       // Return the AI-structured data
       return {
         success: true,
@@ -606,8 +678,6 @@ export async function extractJobDescriptionFromUrl(url: string) {
       };
 
     } catch (aiError: any) {
-      console.error('AI structuring error:', aiError);
-      
       // If AI fails, return raw content as fallback
       return {
         success: true,
@@ -622,8 +692,6 @@ export async function extractJobDescriptionFromUrl(url: string) {
     }
 
   } catch (error: any) {
-    console.error('Job extraction error:', error);
-    
     if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
       return {
         success: false,
@@ -655,6 +723,32 @@ export async function extractJobDescriptionFromUrl(url: string) {
     return {
       success: false,
       error: 'Failed to extract job description. Please copy the job description manually.',
+    };
+  }
+}
+
+// AI-powered intelligent resume parsing action
+export async function parseResumeIntelligentlyAction(
+  resumeText: string
+): Promise<{success: boolean; data?: any; error?: string}> {
+  try {
+    if (!resumeText || resumeText.trim().length < 50) {
+      return {
+        success: false,
+        error: 'Resume text is too short. Please provide a more detailed resume.',
+      };
+    }
+
+    const result = await parseResumeIntelligently({ resumeText });
+    
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: 'Failed to parse resume with AI. Please try again.',
     };
   }
 }

@@ -1,9 +1,13 @@
 
 import type { Metadata } from 'next';
-import { Inter, Space_Grotesk } from 'next/font/google';
+import { Inter, Space_Grotesk, Poppins, Montserrat, Work_Sans, Playfair_Display, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
+import './template-fonts.css';
+import './print-resume.css';
+import './enhanced-template-styles.css';
 import ClientLayout from './client-layout';
 import { Analytics } from "@vercel/analytics/next"
+
 // Optimize font loading with next/font
 const inter = Inter({
   subsets: ['latin'],
@@ -21,6 +25,42 @@ const spaceGrotesk = Space_Grotesk({
   display: 'swap',
   preload: true,
   fallback: ['system-ui', 'arial'],
+});
+
+// Resume Template Fonts
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-poppins',
+  display: 'swap',
+});
+
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-montserrat',
+  display: 'swap',
+});
+
+const workSans = Work_Sans({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600'],
+  variable: '--font-work-sans',
+  display: 'swap',
+});
+
+const playfairDisplay = Playfair_Display({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-playfair',
+  display: 'swap',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600'],
+  variable: '--font-jetbrains',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -58,7 +98,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${spaceGrotesk.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${spaceGrotesk.variable} ${poppins.variable} ${montserrat.variable} ${workSans.variable} ${playfairDisplay.variable} ${jetbrainsMono.variable}`}>
       <body className="font-body antialiased" suppressHydrationWarning>
         <ClientLayout>
           {children}

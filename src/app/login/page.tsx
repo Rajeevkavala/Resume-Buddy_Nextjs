@@ -105,7 +105,6 @@ export default function LoginPage() {
         // Fire event to notify components that user data is ready
         window.dispatchEvent(new CustomEvent('user-data-loaded', { detail: { userId: userCredential.user.uid } }));
       } catch (dataError) {
-        console.error('Error loading user data after login:', dataError);
         // Continue with redirect even if data loading fails
       }
       
@@ -158,26 +157,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20 p-4">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-40 left-40 w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
-      </div>
-
-      <Card className="w-full max-w-md relative backdrop-blur-sm bg-background/95 border-0 shadow-2xl">
-        <CardHeader className="space-y-4 pb-8">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-4">
           <div className="flex items-center justify-center">
-            <div className="p-3 rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
-              <Sparkles className="h-6 w-6 text-white" />
+            <div className="p-3 rounded-full bg-primary/10">
+              <Sparkles className="h-6 w-6 text-primary" />
             </div>
           </div>
           <div className="text-center space-y-2">
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <CardTitle className="text-2xl font-bold">
               Welcome Back
             </CardTitle>
-            <CardDescription className="text-base text-muted-foreground">
+            <CardDescription>
               Sign in to continue your resume journey
             </CardDescription>
           </div>

@@ -41,6 +41,7 @@ const navItems = [
   { href: '/qa', label: 'Q&A', prefetch: true },
   { href: '/interview', label: 'Interview', prefetch: true },
   { href: '/improvement', label: 'Improvement', prefetch: true },
+  { href: '/create-resume', label: 'Create Resume', prefetch: true },
 ];
 
 // Additional routes - enable prefetching for critical routes

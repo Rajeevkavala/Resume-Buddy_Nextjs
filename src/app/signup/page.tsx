@@ -132,7 +132,6 @@ export default function SignupPage() {
         // Fire event to notify components that user data is ready (new users won't have existing data)
         window.dispatchEvent(new CustomEvent('user-data-loaded', { detail: { userId: userCredential.user.uid } }));
       } catch (dataError) {
-        console.error('Error setting up user profile after signup:', dataError);
         // Continue with redirect even if profile setup fails
       }
       
@@ -169,26 +168,19 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-emerald-900/20 dark:to-blue-900/20 p-4">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-emerald-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-40 left-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
-      </div>
-
-      <Card className="w-full max-w-md relative backdrop-blur-sm bg-background/95 border-0 shadow-2xl">
-        <CardHeader className="space-y-4 pb-8">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-4">
           <div className="flex items-center justify-center">
-            <div className="p-3 rounded-full bg-gradient-to-r from-emerald-600 to-blue-600">
-              <Sparkles className="h-6 w-6 text-white" />
+            <div className="p-3 rounded-full bg-primary/10">
+              <Sparkles className="h-6 w-6 text-primary" />
             </div>
           </div>
           <div className="text-center space-y-2">
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">
+            <CardTitle className="text-2xl font-bold">
               Join ResumeBuddy
             </CardTitle>
-            <CardDescription className="text-base text-muted-foreground">
+            <CardDescription>
               Create your account and start building amazing resumes
             </CardDescription>
           </div>

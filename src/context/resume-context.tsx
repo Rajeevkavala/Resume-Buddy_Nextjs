@@ -1,7 +1,7 @@
 
 'use client';
 
-import { createContext, useState, ReactNode, Dispatch, SetStateAction, useEffect, startTransition, useCallback } from 'react';
+import { createContext, useState, ReactNode, Dispatch, SetStateAction, useEffect, startTransition, useCallback, useContext } from 'react';
 import { getUserData } from '@/lib/local-storage';
 import { useAuth } from './auth-context';
 import type { AnalysisResult, QATopic, JobRole } from '@/lib/types';
@@ -256,4 +256,15 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
       {children}
     </ResumeContext.Provider>
   );
+}
+
+/**
+ * Custom hook to use the Resume Context
+ */
+export function useResume() {
+  const context = useContext(ResumeContext);
+  if (context === undefined) {
+    throw new Error('useResume must be used within a ResumeProvider');
+  }
+  return context;
 }

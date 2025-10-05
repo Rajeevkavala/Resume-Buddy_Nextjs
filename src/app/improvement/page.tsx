@@ -133,65 +133,125 @@ export default function ImprovementPage() {
     });
   };
 
-  // Client-side PDF export function
+  // Enhanced client-side PDF export function with better formatting
   const exportPdfClient = (text: string): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       try {
+        if (!text || text.trim().length === 0) {
+          reject(new Error('Resume text is empty. Please generate improvements first.'));
+          return;
+        }
+
         const doc = new jsPDF({
           orientation: 'portrait',
           unit: 'mm',
-          format: 'a4'
+          format: 'a4',
+          compress: true
         });
-
-        // Set font and size
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(12);
 
         // Page dimensions and margins
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
         const margin = 20;
         const maxLineWidth = pageWidth - 2 * margin;
-        const lineHeight = 7;
         let yPosition = margin;
 
-        // Split text into lines
-        const lines = text.split('\n');
+        // Split text into sections and lines
+        const sections = text.split('\n\n');
+        
+        for (let i = 0; i < sections.length; i++) {
+          const section = sections[i].trim();
+          if (!section) continue;
 
-        for (const line of lines) {
-          if (!line.trim()) {
-            // Empty line - add space
-            yPosition += lineHeight;
-            continue;
-          }
-
-          // Handle long lines by wrapping them
-          const wrappedLines = doc.splitTextToSize(line, maxLineWidth);
+          const lines = section.split('\n');
           
-          for (const wrappedLine of wrappedLines) {
+          for (let j = 0; j < lines.length; j++) {
+            const line = lines[j].trim();
+            if (!line) continue;
+
+            // Detect headers (all caps, or lines ending with colon, or starting with ###)
+            const isHeader = line === line.toUpperCase() || 
+                           line.endsWith(':') || 
+                           line.startsWith('#');
+            
+            // Set font style based on content
+            if (isHeader) {
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(14);
+              // Add extra space before headers (except first one)
+              if (yPosition > margin) {
+                yPosition += 5;
+              }
+            } else {
+              doc.setFont('helvetica', 'normal');
+              doc.setFontSize(11);
+            }
+
             // Check if we need a new page
-            if (yPosition > pageHeight - margin) {
+            const estimatedHeight = isHeader ? 8 : 6;
+            if (yPosition + estimatedHeight > pageHeight - margin) {
               doc.addPage();
               yPosition = margin;
             }
+
+            // Clean the line (remove markdown)
+            const cleanLine = line.replace(/^#+\s*/, '').replace(/\*\*/g, '');
             
-            doc.text(wrappedLine, margin, yPosition);
-            yPosition += lineHeight;
+            // Handle long lines by wrapping them
+            const wrappedLines = doc.splitTextToSize(cleanLine, maxLineWidth);
+            
+            for (const wrappedLine of wrappedLines) {
+              // Check for page break
+              if (yPosition > pageHeight - margin) {
+                doc.addPage();
+                yPosition = margin;
+              }
+              
+              doc.text(wrappedLine, margin, yPosition);
+              yPosition += isHeader ? 7 : 5.5;
+            }
+
+            // Add small space after headers
+            if (isHeader) {
+              yPosition += 2;
+            }
+          }
+          
+          // Add spacing between sections
+          if (i < sections.length - 1) {
+            yPosition += 4;
           }
         }
 
         // Convert to blob
         const pdfBlob = doc.output('blob');
+        
+        // Verify blob is not empty
+        if (pdfBlob.size === 0) {
+          reject(new Error('Generated PDF is empty. Please try again.'));
+          return;
+        }
+        
         resolve(pdfBlob);
       } catch (error) {
-        console.error('Client-side PDF generation error:', error);
         reject(error);
       }
     });
   };
 
-  const handleExport = async (format: 'docx' | 'pdf', filename?: string) => {
-    if (!improvements?.improvedResumeText) return;
+  const handleExport = async (
+    format: 'docx' | 'pdf', 
+    filename?: string,
+    template?: any,
+    customization?: any
+  ) => {
+    // Validate improved resume text exists and is not empty
+    if (!improvements?.improvedResumeText || improvements.improvedResumeText.trim().length === 0) {
+      toast.error('No resume content available', {
+        description: 'Please generate improvements first before exporting.'
+      });
+      return;
+    }
 
     const exportPromise = (async () => {
       try {
@@ -199,6 +259,11 @@ export default function ImprovementPage() {
         
         if (format === 'docx') {
           const base64Data = await exportDocx(improvements.improvedResumeText);
+          
+          if (!base64Data || base64Data.length === 0) {
+            throw new Error('DOCX generation returned empty data');
+          }
+          
           const byteCharacters = atob(base64Data);
           const byteNumbers = new Array(byteCharacters.length);
           for (let i = 0; i < byteCharacters.length; i++) {
@@ -209,21 +274,27 @@ export default function ImprovementPage() {
             type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           });
         } else {
-          // Use client-side PDF generation
+          // Use enhanced client-side PDF generation
           blob = await exportPdfClient(improvements.improvedResumeText);
         }
         
-        saveAs(blob, filename || `improved-resume.${format}`);
+        // Verify blob is valid before saving
+        if (!blob || blob.size === 0) {
+          throw new Error(`Generated ${format.toUpperCase()} file is empty. The file has 0 bytes.`);
+        }
+        
+        saveAs(blob, filename || `Resume_Enhanced.${format}`);
+        
+        return `File saved: ${filename || `Resume_Enhanced.${format}`}`;
       } catch (error) {
-        console.error(`Error exporting ${format}:`, error);
         throw error;
       }
     })();
 
     toast.promise(exportPromise, {
-      loading: `Exporting as ${format.toUpperCase()}...`,
-      success: `Resume exported successfully!`,
-      error: `Could not export resume as ${format.toUpperCase()}.`,
+      loading: `Generating ${format.toUpperCase()} file...`,
+      success: (msg) => `✅ Resume exported successfully as ${format.toUpperCase()}!`,
+      error: (err) => `❌ Failed to export: ${err.message || 'Unknown error'}`,
     });
   };
 

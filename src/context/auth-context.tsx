@@ -120,7 +120,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               window.dispatchEvent(new CustomEvent('user-data-loaded', { detail: { userId: newUser.uid } }));
             }, 100);
           } catch (error) {
-            console.error('Error loading user profile:', error);
+            // Silently handle profile loading errors
           }
         });
       }
@@ -159,7 +159,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         window.dispatchEvent(new CustomEvent('routeChangeComplete'));
       }, 100);
     } catch (error) {
-      console.error('Error signing out: ', error);
+      // Silently handle sign out errors
     }
   };
 
@@ -213,13 +213,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Fire event to notify components that user data is ready
         window.dispatchEvent(new CustomEvent('user-data-loaded', { detail: { userId: result.user.uid } }));
       } catch (dataError) {
-        console.error('Error loading user data after sign in:', dataError);
         // Continue with redirect even if data loading fails
       }
       
       // Sync Google profile photo to Supabase in the background
       if (result.user.photoURL) {
-        syncGoogleProfilePhoto(result.user).catch(console.error);
+        syncGoogleProfilePhoto(result.user).catch(() => {});
       }
       
       toast.success('Signed in successfully!');

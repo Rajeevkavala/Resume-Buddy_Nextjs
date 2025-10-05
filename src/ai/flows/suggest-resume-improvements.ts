@@ -105,7 +105,21 @@ const prompt = ai.definePrompt({
 
 Your output **must** be a valid JSON object that strictly adheres to the provided schema.
 
-1.  **Analyze and Rewrite:** Do not just edit; completely rewrite the resume for maximum impact. Reorganize sections if necessary. The final output must be the full, complete resume text in the \`improvedResumeText\` field.
+1.  **Analyze and Rewrite for COMPACT, One-Page Format:** 
+    *   Completely rewrite the resume for maximum impact within single-page constraints.
+    *   **STRICT Compact Content Guidelines (6 sections max):**
+        - Header: Compact format with contact info in single line
+        - Professional Summary: Concise overview (60-80 words max)
+        - Technical Skills: Group into 5 categories max: Languages, Frameworks, Databases, Tools, Cloud/CI
+        - Key Projects: Limit to TOP 2-3 most impactful projects only
+        - Professional Experience: MAX 2 bullet points per role for conciseness
+        - Education & Certifications: Merge into single section, one line per item
+    *   **Compression Rules:**
+        - Remove filler words: "successfully," "effectively," "comprehensive," "ensuring"
+        - Use short, direct verbs: built, designed, deployed, integrated, improved
+        - Replace full sentences with impact phrases
+        - Keep white space minimal but balanced for readability
+    *   The final output must be the full, complete resume text in the \`improvedResumeText\` field.
 
 2.  **Generate an Impact Forecast (\`impactForecast\`):**
     *   **"Before" Scores**: Use the data from the \`previousAnalysis\` input for the 'before' scores.
@@ -118,28 +132,34 @@ Your output **must** be a valid JSON object that strictly adheres to the provide
         *   \`skillsMatch\`: A percentage (0-100), relevant only if a job description is provided.
         *   \`quantifiedAchievements\`: The total count of bullet points containing specific, measurable results in your rewritten resume.
 
-3.  **Craft a Powerful Summary (\`improvementsSummary\`):** Write a concise summary (2-3 sentences) explaining the key changes you made. Highlight the most significant improvements, such as adding quantified metrics and integrating skills.
+3.  **Craft a Powerful Summary (\`improvementsSummary\`):** Write a comprehensive summary (3-4 sentences) explaining the key changes you made. Highlight the most significant improvements, such as adding quantified metrics and integrating skills for optimal professional presentation.
 
-4.  **Quantify Achievements (\`quantifiedAchievements\`):** This is a crucial step.
-    *   Identify at least 5-7 key responsibilities or generic statements in the original resume.
-    *   Transform them into specific, metric-based achievements. Invent realistic, industry-appropriate metrics where they are missing.
+4.  **Quantify Achievements (\`quantifiedAchievements\`) - COMPACT FORMAT:**
+    *   Select ONLY the most impactful achievements for quantification (max 20-22 total bullet points).
+    *   Transform them into CONCISE, metric-based achievements using compressed wording.
+    *   Keep each bullet point to maximum 2 lines for single-page optimization.
     *   For each transformation, create an object containing the \`original\` phrase, the \`improved\` achievement, and the \`section\` where it appears.
-    *   *Example:*
-        *   original: "Managed a team"
-        *   improved: "Led a team of 8 developers, resulting in a 25% increase in productivity."
-        *   section: "Lead Developer at TechCorp"
+    *   *Compact Example:*
+        *   original: "Successfully completed a 6-week intensive internship focused on modern web application development"
+        *   improved: "Completed 6-week MERN stack internship; ranked Top 10/100+ for project quality and UX"
+        *   section: "Intern at EY GDS"
 
-5.  **Integrate Missing Keywords (\`integratedSkills\`):**
-    *   If a job description is provided, identify important missing keywords.
-    *   Seamlessly weave these keywords into the professional summary and work experience sections.
+5.  **Integrate Missing Keywords (\`integratedSkills\`) - COMPREHENSIVE INTEGRATION:**
+    *   If a job description is provided, identify all relevant missing keywords for complete coverage.
+    *   Seamlessly weave these keywords into the professional summary, experience sections, and skills areas.
+    *   Prioritize natural integration that enhances the overall professional narrative.
     *   For each skill you add, create an object with the \`skill\` and a brief \`integrationPoint\` showing where it was added.
-    *   *Example:*
-        *   skill: "CI/CD"
-        *   integrationPoint: "...resulting in a 25% increase in productivity through the implementation of a new CI/CD pipeline."
 
-6.  **Use Powerful Action Verbs:** Start every bullet point in the improved resume with a strong, impactful action verb (e.g., "Architected," "Orchestrated," "Spearheaded").
+6.  **Use Powerful Action Verbs:** Start every bullet point with impactful action verbs (e.g., "Architected," "Delivered," "Optimized").
 
-7.  **Format for Readability:** Ensure the \`improvedResumeText\` is well-formatted with clear headings and consistent spacing for ATS-compliance and human readability.
+7.  **Format for COMPACT Single-Page Layout:** 
+    *   Ensure the \`improvedResumeText\` uses optimized formatting for single-page presentation.
+    *   STRICT section order: Header → Professional Summary → Technical Skills → Key Projects → Experience → Education & Certifications
+    *   Use 10.5-11pt font equivalent spacing with minimal white space.
+    *   Skills section: Group into max 5 lines (Languages, Frameworks, Databases, Tools, Cloud/CI).
+    *   Limit projects to TOP 2-3 with 1-line descriptions and max 2 bullet points each.
+    *   Experience: Max 2 bullet points per role, no paragraph longer than 2 lines.
+    *   Education & Certifications: Merge into single section, one line per item.
 `,
 });
 
