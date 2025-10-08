@@ -64,7 +64,7 @@ export default function LandingPage() {
   ];
 
   const stats = [
-    { value: "10,000+", label: "Resumes Analyzed" },
+    { value: "100+", label: "Resumes Analyzed" },
     { value: "95%", label: "Success Rate" },
     { value: "2.5x", label: "More Interviews" },
     { value: "24/7", label: "AI Availability" }
