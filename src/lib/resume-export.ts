@@ -80,6 +80,55 @@ export async function exportToPDF(
     // Apply export preparation styles
     element.classList.add('preparing-export');
 
+    // Collect link positions BEFORE capturing (for adding clickable PDF annotations)
+    const linkData: Array<{ href: string; x: number; y: number; width: number; height: number }> = [];
+    const elementRect = element.getBoundingClientRect();
+    const links = element.querySelectorAll('a[href]');
+    links.forEach((link) => {
+      const href = link.getAttribute('href');
+      if (href && (href.startsWith('http') || href.startsWith('mailto:'))) {
+        const rect = link.getBoundingClientRect();
+        linkData.push({
+          href,
+          x: rect.left - elementRect.left,
+          y: rect.top - elementRect.top,
+          width: rect.width,
+          height: rect.height,
+        });
+      }
+    });
+
+    // Collect text content with positions for creating selectable/extractable text layer
+    const textData: Array<{ text: string; x: number; y: number; fontSize: number; fontWeight: string }> = [];
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null);
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      const text = node.textContent?.trim();
+      if (!text) continue;
+      
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      const rects = range.getClientRects();
+      if (rects.length === 0) continue;
+      
+      const parentEl = node.parentElement;
+      if (!parentEl) continue;
+      
+      const computedStyle = window.getComputedStyle(parentEl);
+      const fontSize = parseFloat(computedStyle.fontSize) || 12;
+      const fontWeight = computedStyle.fontWeight;
+      
+      // Get the first rect for positioning
+      const rect = rects[0];
+      textData.push({
+        text,
+        x: rect.left - elementRect.left,
+        y: rect.top - elementRect.top + fontSize * 0.8, // Adjust for baseline
+        fontSize,
+        fontWeight,
+      });
+    }
+
     // Wait for layout to settle and ensure all content is rendered
     await new Promise(resolve => setTimeout(resolve, 500));
     
@@ -103,8 +152,8 @@ export async function exportToPDF(
     }
     
     // Capture the element as canvas with enhanced settings
-    const canvas = await html2canvas(element, {
-      scale: 2, // Good balance of quality and performance
+    const canvas = await html2canvas(element, ({
+      scale: 3, // Sharper text/styling for exported PDFs
       useCORS: true,
       logging: true, // Enable logging for debugging
       backgroundColor: '#ffffff',
@@ -115,14 +164,35 @@ export async function exportToPDF(
       imageTimeout: 30000,
       removeContainer: false,
       allowTaint: false,
-      foreignObjectRendering: true,
+      // letterRendering can introduce spacing artifacts; prefer normal rendering
+      letterRendering: false,
+      foreignObjectRendering: false,
       ignoreElements: (element: Element) => {
         // Ignore any zoom controls or buttons
         return element.classList.contains('no-export') || 
                element.tagName === 'BUTTON' ||
                element.getAttribute('role') === 'button';
       },
-      onclone: (clonedDoc, clonedElement) => {
+      onclone: (clonedDoc: globalThis.Document, clonedElement: HTMLElement) => {
+        // Prevent common html2canvas clipping issues on line-clamped blocks.
+        // We keep the clamp but add a small bottom padding so descenders aren't cut.
+        const styleEl = clonedDoc.createElement('style');
+        styleEl.textContent = `
+          /* Ensure the export root doesn't clip its own contents */
+          .preparing-export,
+          .preparing-export .resume-container {
+            overflow: visible !important;
+            max-height: none !important;
+            height: auto !important;
+          }
+
+          .preparing-export [style*="-webkit-line-clamp"],
+          .preparing-export [style*="WebkitLineClamp"] {
+            padding-bottom: 0.25em !important;
+          }
+        `;
+        clonedDoc.head.appendChild(styleEl);
+
         // Apply print styles to cloned document
         const resumeEl = clonedElement.querySelector('.resume-preview-container') ||
                         clonedElement.querySelector('.resume-container') ||
@@ -131,17 +201,15 @@ export async function exportToPDF(
         if (resumeEl) {
           (resumeEl as HTMLElement).classList.add('preparing-export');
           (resumeEl as HTMLElement).style.width = '210mm';
-          (resumeEl as HTMLElement).style.fontOpticalSizing = 'auto';
-          (resumeEl as HTMLElement).style.textRendering = 'optimizeLegibility';
-          (resumeEl as HTMLElement).style.setProperty('-webkit-font-smoothing', 'antialiased');
-          (resumeEl as HTMLElement).style.setProperty('-moz-osx-font-smoothing', 'grayscale');
+          (resumeEl as HTMLElement).style.backgroundColor = '#ffffff';
+          (resumeEl as HTMLElement).style.fontFamily = 'Inter, Calibri, Helvetica, Arial, sans-serif';
         }
         
         // Ensure all fonts are loaded in cloned document
         const fontFaces = Array.from(document.fonts.values());
         return Promise.all(fontFaces.map(font => font.load()));
       }
-    });
+    }) as any);
 
     console.log('Canvas captured successfully:', {
       width: canvas.width,
@@ -193,73 +261,69 @@ export async function exportToPDF(
     console.log('PDF dimensions:', { pdfWidth, pdfHeight, imgWidth, imgHeight });
     
     // Calculate scaling to fit width with margins
-    const margin = 10; // 10mm margins
-    const contentWidth = pdfWidth - (margin * 2);
+    // IMPORTANT: keep the exported PDF matching the on-screen preview.
+    // The preview is already sized to A4 (210mm wide), so we avoid adding extra
+    // margins or re-scaling to fit height.
+    const margin = 0;
+    const contentWidth = pdfWidth;
     const scaleFactor = contentWidth / imgWidth;
     const scaledHeight = imgHeight * scaleFactor;
     
     console.log('Scaled dimensions:', { contentWidth, scaleFactor, scaledHeight });
     
-    // If content fits on one page, add it directly
-    if (scaledHeight <= pdfHeight - (margin * 2)) {
-      pdf.addImage(
-        imgData,
-        'PNG',
-        margin,
-        margin,
-        contentWidth,
-        scaledHeight,
-        undefined,
-        'FAST'
-      );
+    const pageContentHeight = pdfHeight;
+
+    // If it fits on one page, render 1:1 with the preview.
+    if (scaledHeight <= pageContentHeight) {
+      // Tiny safety shrink to avoid last-line clipping due to PDF rounding.
+      const safeMaxHeight = pageContentHeight - 0.5;
+      let renderWidth = contentWidth;
+      let renderHeight = scaledHeight;
+      let x = 0;
+      if (renderHeight > safeMaxHeight) {
+        const s = safeMaxHeight / renderHeight;
+        renderWidth *= s;
+        renderHeight *= s;
+        x = (contentWidth - renderWidth) / 2;
+      }
+      pdf.addImage(imgData, 'PNG', x, 0, renderWidth, renderHeight, undefined, 'FAST');
+
+      // Add invisible text layer for text selection and ATS extraction
+      const textScaleFactor = renderWidth / element.scrollWidth;
+      pdf.setTextColor(255, 255, 255); // White (invisible on white background)
+      textData.forEach(({ text, x: tx, y: ty, fontSize, fontWeight }) => {
+        const pdfX = x + tx * textScaleFactor;
+        const pdfY = ty * textScaleFactor;
+        const pdfFontSize = fontSize * textScaleFactor * 0.75; // Convert px to pt approximately
+        
+        pdf.setFontSize(pdfFontSize > 1 ? pdfFontSize : 1);
+        try {
+          pdf.setFont('helvetica', fontWeight === '700' || fontWeight === 'bold' ? 'bold' : 'normal');
+        } catch {
+          pdf.setFont('helvetica', 'normal');
+        }
+        
+        // Add text with 0 opacity effect (render color same as background)
+        pdf.text(text, pdfX, pdfY, { renderingMode: 'invisible' as any });
+      });
+
+      // Add clickable link annotations on top of the image
+      const linkScaleFactor = renderWidth / element.scrollWidth;
+      linkData.forEach(({ href, x: lx, y: ly, width: lw, height: lh }) => {
+        const pdfX = x + lx * linkScaleFactor;
+        const pdfY = ly * linkScaleFactor;
+        const pdfW = lw * linkScaleFactor;
+        const pdfH = lh * linkScaleFactor;
+        pdf.link(pdfX, pdfY, pdfW, pdfH, { url: href });
+      });
     } else {
-      // Multi-page content - split across pages
-      const pageContentHeight = pdfHeight - (margin * 2);
-      let currentY = 0;
-      let pageNumber = 0;
-      
-      while (currentY < imgHeight) {
-        if (pageNumber > 0) {
-          pdf.addPage();
-        }
-        
-        // Calculate how much of the image to show on this page
-        const sourceY = currentY;
-        const sourceHeight = Math.min(imgHeight - currentY, pageContentHeight / scaleFactor);
-        
-        // Create a temporary canvas for this page's content
-        const pageCanvas = document.createElement('canvas');
-        pageCanvas.width = imgWidth;
-        pageCanvas.height = sourceHeight;
-        const pageCtx = pageCanvas.getContext('2d');
-        
-        if (pageCtx) {
-          // Draw the portion of the original canvas onto the page canvas
-          pageCtx.drawImage(
-            canvas,
-            0, sourceY,           // Source position
-            imgWidth, sourceHeight, // Source dimensions
-            0, 0,                  // Destination position
-            imgWidth, sourceHeight  // Destination dimensions
-          );
-          
-          const pageImgData = pageCanvas.toDataURL('image/png', 1.0);
-          const scaledPageHeight = sourceHeight * scaleFactor;
-          
-          pdf.addImage(
-            pageImgData,
-            'PNG',
-            margin,
-            margin,
-            contentWidth,
-            scaledPageHeight,
-            undefined,
-            'FAST'
-          );
-        }
-        
-        currentY += sourceHeight;
-        pageNumber++;
+      // Multi-page: re-use the full image with vertical offsets (avoids slice/canvas rounding loss)
+      let position = 0;
+      pdf.addImage(imgData, 'PNG', 0, -position, contentWidth, scaledHeight, undefined, 'FAST');
+      while (position + pageContentHeight < scaledHeight) {
+        position += pageContentHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, -position, contentWidth, scaledHeight, undefined, 'FAST');
       }
     }
 
@@ -283,22 +347,90 @@ export async function exportToDOCX(
   try {
     toast.loading('Generating DOCX...', { id: 'docx-export' });
 
+    // Support multiple ResumeData shapes used across the repo.
+    const anyResume = resumeData as any;
+    const experience = Array.isArray(anyResume.experience) ? anyResume.experience : [];
+    const education = Array.isArray(anyResume.education)
+      ? anyResume.education
+      : Array.isArray(anyResume.educationAndCertifications?.education)
+        ? anyResume.educationAndCertifications.education
+        : [];
+    const projects = Array.isArray(anyResume.projects) ? anyResume.projects : [];
+    const certifications = Array.isArray(anyResume.certifications)
+      ? anyResume.certifications
+      : Array.isArray(anyResume.educationAndCertifications?.certifications)
+        ? anyResume.educationAndCertifications.certifications
+        : [];
+
+    const skillsGroups = Array.isArray(anyResume.skills)
+      ? anyResume.skills
+      : anyResume.skills && typeof anyResume.skills === 'object'
+        ? Object.entries(anyResume.skills)
+            .map(([category, items]) => ({
+              category,
+              items: Array.isArray(items) ? items : [],
+            }))
+            .filter((g) => g.items.length > 0)
+        : [];
+
+    // Recruiter-standard sizes in twips (1pt = 20 twips)
+    const PT = {
+      name: 20 * 20,      // 20pt
+      section: 12 * 20,   // 12pt
+      body: 10.5 * 20,    // 10.5pt (210 twips)
+      contact: 9.5 * 20,  // 9.5pt (190 twips)
+    };
+
+    // Spacing in twips
+    const SPACING = {
+      afterName: 12 * 20,       // 12pt after name
+      afterContact: 8 * 20,     // 8pt after contact line
+      beforeSection: 15 * 20,   // 15pt before section heading
+      afterSection: 8 * 20,     // 8pt after section heading
+      afterParagraph: 6 * 20,   // 6pt after body paragraphs
+      afterBullet: 4 * 20,      // 4pt between bullets
+      betweenEntries: 10 * 20,  // 10pt between experience/project entries
+    };
+
+    // Build links line
+    const linksLine = [
+      anyResume.personalInfo?.linkedin ? 'LinkedIn' : '',
+      anyResume.personalInfo?.github ? 'GitHub' : '',
+      (anyResume.personalInfo?.portfolio || anyResume.personalInfo?.website || anyResume.personalInfo?.url) ? 'Portfolio' : '',
+    ].filter(Boolean).join(' | ');
+
     const doc = new Document({
       sections: [
         {
-          properties: {},
+          properties: {
+            page: {
+              margin: {
+                top: 720,    // 0.5in
+                right: 1008, // 0.7in
+                bottom: 720, // 0.5in
+                left: 1008,  // 0.7in
+              },
+            },
+          },
           children: [
-            // Header with name
+            // Header with name (20pt semi-bold centered)
             new Paragraph({
-              text: resumeData.personalInfo.fullName,
-              heading: HeadingLevel.HEADING_1,
               alignment: AlignmentType.CENTER,
-              spacing: { after: 200 },
+              spacing: { after: SPACING.afterName },
+              children: [
+                new TextRun({
+                  text: resumeData.personalInfo.fullName,
+                  size: PT.name,
+                  bold: true,
+                  font: 'Calibri',
+                }),
+              ],
             }),
 
-            // Contact info
+            // Contact info (9.5pt centered)
             new Paragraph({
               alignment: AlignmentType.CENTER,
+              spacing: { after: 0 },
               children: [
                 new TextRun({
                   text: [
@@ -308,164 +440,294 @@ export async function exportToDOCX(
                   ]
                     .filter(Boolean)
                     .join(' | '),
+                  size: PT.contact,
+                  font: 'Calibri',
                 }),
               ],
-              spacing: { after: 400 },
             }),
+
+            // Links line (9.5pt centered, no underline)
+            ...(linksLine
+              ? [
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    spacing: { after: SPACING.afterContact },
+                    children: [
+                      new TextRun({
+                        text: linksLine,
+                        size: PT.contact,
+                        font: 'Calibri',
+                      }),
+                    ],
+                  }),
+                ]
+              : []),
 
             // Summary
             ...(resumeData.summary
               ? [
                   new Paragraph({
-                    text: 'PROFESSIONAL SUMMARY',
-                    heading: HeadingLevel.HEADING_2,
-                    spacing: { before: 200, after: 100 },
+                    children: [
+                      new TextRun({
+                        text: 'PROFESSIONAL SUMMARY',
+                        size: PT.section,
+                        bold: true,
+                        font: 'Calibri',
+                      }),
+                    ],
+                    spacing: { before: SPACING.beforeSection, after: SPACING.afterSection },
+                    border: {
+                      bottom: { style: 'single' as any, size: 4, color: '222222' },
+                    },
                   }),
                   new Paragraph({
-                    text: resumeData.summary,
-                    spacing: { after: 300 },
+                    children: [
+                      new TextRun({
+                        text: resumeData.summary,
+                        size: PT.body,
+                        font: 'Calibri',
+                      }),
+                    ],
+                    spacing: { after: SPACING.afterParagraph, line: 276 }, // 1.15 line spacing
                   }),
                 ]
               : []),
 
             // Experience
-            new Paragraph({
-              text: 'PROFESSIONAL EXPERIENCE',
-              heading: HeadingLevel.HEADING_2,
-              spacing: { before: 200, after: 100 },
-            }),
-            ...resumeData.experience.flatMap((exp) => [
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: exp.title,
-                    bold: true,
-                  }),
-                  new TextRun({
-                    text: ` | ${exp.company}`,
-                  }),
-                ],
-                spacing: { after: 50 },
-              }),
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: `${exp.startDate} - ${exp.current ? 'Present' : exp.endDate} | ${exp.location}`,
-                    italics: true,
-                  }),
-                ],
-                spacing: { after: 100 },
-              }),
-              ...exp.achievements.map(
-                (achievement) =>
-                  new Paragraph({
-                    text: `• ${achievement}`,
-                    spacing: { after: 50 },
-                    indent: { left: 360 },
-                  })
-              ),
-              new Paragraph({ text: '', spacing: { after: 200 } }),
-            ]),
-
-            // Education
-            new Paragraph({
-              text: 'EDUCATION',
-              heading: HeadingLevel.HEADING_2,
-              spacing: { before: 200, after: 100 },
-            }),
-            ...resumeData.education.flatMap((edu) => [
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: edu.degree,
-                    bold: true,
-                  }),
-                ],
-                spacing: { after: 50 },
-              }),
-              new Paragraph({
-                text: `${edu.institution} | ${edu.graduationDate}`,
-                spacing: { after: 200 },
-              }),
-            ]),
-
-            // Skills
-            ...(resumeData.skills.length > 0
+            ...(experience.length > 0
               ? [
                   new Paragraph({
-                    text: 'SKILLS',
-                    heading: HeadingLevel.HEADING_2,
-                    spacing: { before: 200, after: 100 },
+                    children: [
+                      new TextRun({
+                        text: 'EXPERIENCE',
+                        size: PT.section,
+                        bold: true,
+                        font: 'Calibri',
+                      }),
+                    ],
+                    spacing: { before: SPACING.beforeSection, after: SPACING.afterSection },
+                    border: {
+                      bottom: { style: 'single' as any, size: 4, color: '222222' },
+                    },
                   }),
-                  ...resumeData.skills.map(
-                    (skill) =>
+                  ...experience.flatMap((exp: any, idx: number) => [
+                    new Paragraph({
+                      children: [
+                        new TextRun({
+                          text: exp.title,
+                          size: PT.body,
+                          bold: true,
+                          font: 'Calibri',
+                        }),
+                      ],
+                      spacing: { before: idx > 0 ? SPACING.betweenEntries : 0, after: 40 },
+                      tabStops: [{ type: 'right' as any, position: 9360 }],
+                    }),
+                    new Paragraph({
+                      children: [
+                        new TextRun({
+                          text: `${exp.company}${exp.location ? ` | ${exp.location}` : ''}`,
+                          size: PT.body,
+                          font: 'Calibri',
+                        }),
+                        new TextRun({
+                          text: `\t${exp.startDate} - ${exp.current ? 'Present' : exp.endDate}`,
+                          size: PT.body,
+                          font: 'Calibri',
+                        }),
+                      ],
+                      spacing: { after: 60 },
+                    }),
+                    ...(Array.isArray(exp.achievements) ? exp.achievements : []).slice(0, 3).map(
+                      (achievement: any) =>
+                        new Paragraph({
+                          children: [
+                            new TextRun({
+                              text: `• ${achievement}`,
+                              size: PT.body,
+                              font: 'Calibri',
+                            }),
+                          ],
+                          spacing: { after: SPACING.afterBullet, line: 276 },
+                          indent: { left: 288 },
+                        })
+                    ),
+                  ]),
+                ]
+              : []),
+
+            // Education
+            ...(education.length > 0
+              ? [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: 'EDUCATION',
+                        size: PT.section,
+                        bold: true,
+                        font: 'Calibri',
+                      }),
+                    ],
+                    spacing: { before: SPACING.beforeSection, after: SPACING.afterSection },
+                    border: {
+                      bottom: { style: 'single' as any, size: 4, color: '222222' },
+                    },
+                  }),
+                  ...education.flatMap((edu: any, idx: number) => [
+                    new Paragraph({
+                      children: [
+                        new TextRun({
+                          text: edu.degree,
+                          size: PT.body,
+                          bold: true,
+                          font: 'Calibri',
+                        }),
+                        new TextRun({
+                          text: `\t${edu.graduationDate || ''}`,
+                          size: PT.body,
+                          font: 'Calibri',
+                        }),
+                      ],
+                      spacing: { before: idx > 0 ? SPACING.betweenEntries : 0, after: 40 },
+                      tabStops: [{ type: 'right' as any, position: 9360 }],
+                    }),
+                    new Paragraph({
+                      children: [
+                        new TextRun({
+                          text: edu.institution,
+                          size: PT.body,
+                          font: 'Calibri',
+                        }),
+                      ],
+                      spacing: { after: SPACING.afterParagraph },
+                    }),
+                  ]),
+                ]
+              : []),
+
+            // Skills
+            ...(skillsGroups.length > 0
+              ? [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: 'SKILLS',
+                        size: PT.section,
+                        bold: true,
+                        font: 'Calibri',
+                      }),
+                    ],
+                    spacing: { before: SPACING.beforeSection, after: SPACING.afterSection },
+                    border: {
+                      bottom: { style: 'single' as any, size: 4, color: '222222' },
+                    },
+                  }),
+                  ...skillsGroups.map(
+                    (skill: any) =>
                       new Paragraph({
                         children: [
                           new TextRun({
                             text: `${skill.category}: `,
+                            size: PT.body,
                             bold: true,
+                            font: 'Calibri',
                           }),
                           new TextRun({
-                            text: skill.items.join(', '),
+                            text: (Array.isArray(skill.items) ? skill.items : []).join(', '),
+                            size: PT.body,
+                            font: 'Calibri',
                           }),
                         ],
-                        spacing: { after: 100 },
+                        spacing: { after: 100, line: 300 }, // 1.25 line spacing
                       })
                   ),
                 ]
               : []),
 
             // Projects
-            ...(resumeData.projects && resumeData.projects.length > 0
+            ...(projects.length > 0
               ? [
                   new Paragraph({
-                    text: 'PROJECTS',
-                    heading: HeadingLevel.HEADING_2,
-                    spacing: { before: 200, after: 100 },
+                    children: [
+                      new TextRun({
+                        text: 'PROJECTS',
+                        size: PT.section,
+                        bold: true,
+                        font: 'Calibri',
+                      }),
+                    ],
+                    spacing: { before: SPACING.beforeSection, after: SPACING.afterSection },
+                    border: {
+                      bottom: { style: 'single' as any, size: 4, color: '222222' },
+                    },
                   }),
-                  ...resumeData.projects.flatMap((project) => [
+                  ...projects.slice(0, 2).flatMap((project: any, idx: number) => [
                     new Paragraph({
                       children: [
                         new TextRun({
                           text: project.name,
+                          size: PT.body,
                           bold: true,
+                          font: 'Calibri',
                         }),
-                        new TextRun({
-                          text: ` | ${project.technologies.join(', ')}`,
-                        }),
+                        ...(project.description
+                          ? [
+                              new TextRun({
+                                text: ` – ${project.description}`,
+                                size: PT.body,
+                                font: 'Calibri',
+                              }),
+                            ]
+                          : []),
                       ],
-                      spacing: { after: 50 },
+                      spacing: { before: idx > 0 ? SPACING.betweenEntries : 0, after: 60 },
                     }),
-                    new Paragraph({
-                      text: project.description,
-                      spacing: { after: 100 },
-                    }),
-                    ...project.achievements.map(
-                      (achievement) =>
+                    ...(Array.isArray(project.achievements) ? project.achievements : []).slice(0, 2).map(
+                      (achievement: any) =>
                         new Paragraph({
-                          text: `• ${achievement}`,
-                          spacing: { after: 50 },
-                          indent: { left: 360 },
+                          children: [
+                            new TextRun({
+                              text: `• ${achievement}`,
+                              size: PT.body,
+                              font: 'Calibri',
+                            }),
+                          ],
+                          spacing: { after: SPACING.afterBullet, line: 276 },
+                          indent: { left: 288 },
                         })
                     ),
-                    new Paragraph({ text: '', spacing: { after: 200 } }),
                   ]),
                 ]
               : []),
 
             // Certifications
-            ...(resumeData.certifications && resumeData.certifications.length > 0
+            ...(certifications.length > 0
               ? [
                   new Paragraph({
-                    text: 'CERTIFICATIONS',
-                    heading: HeadingLevel.HEADING_2,
-                    spacing: { before: 200, after: 100 },
+                    children: [
+                      new TextRun({
+                        text: 'ACHIEVEMENTS & CERTIFICATIONS',
+                        size: PT.section,
+                        bold: true,
+                        font: 'Calibri',
+                      }),
+                    ],
+                    spacing: { before: SPACING.beforeSection, after: SPACING.afterSection },
+                    border: {
+                      bottom: { style: 'single' as any, size: 4, color: '222222' },
+                    },
                   }),
-                  ...resumeData.certifications.map(
-                    (cert) =>
+                  ...certifications.slice(0, 2).map(
+                    (cert: any) =>
                       new Paragraph({
-                        text: `${cert.name} | ${cert.issuer} | ${cert.date}`,
-                        spacing: { after: 100 },
+                        children: [
+                          new TextRun({
+                            text: cert.name || cert.title || String(cert),
+                            size: PT.body,
+                            font: 'Calibri',
+                          }),
+                        ],
+                        spacing: { after: SPACING.afterParagraph },
                       })
                   ),
                 ]

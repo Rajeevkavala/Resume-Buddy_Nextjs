@@ -61,11 +61,25 @@ export function useAutoSave({
   );
 
   useEffect(() => {
-    if (enabled && !isInitialLoad.current) {
-      debouncedSave();
+    if (!enabled) return;
+
+    // Prime the hook on first run so subsequent changes are detected/saved.
+    if (isInitialLoad.current) {
+      try {
+        lastSavedRef.current = JSON.stringify(data);
+      } catch {
+        lastSavedRef.current = '';
+      }
+      isInitialLoad.current = false;
+      return;
     }
-    
+
+    debouncedSave();
+
     return () => {
+      // If the user navigates away quickly after editing, flush pending saves
+      // so drafts aren't lost when components unmount.
+      debouncedSave.flush();
       debouncedSave.cancel();
     };
   }, [data, debouncedSave, enabled]);

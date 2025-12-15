@@ -1,80 +1,61 @@
 ﻿'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useResume } from '@/context/resume-context';
 import { useAuth } from '@/context/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import { Loader2, FileText, AlertCircle, Sparkles, Eye, Activity, Briefcase, Award, Code, BadgeCheck, User, GraduationCap, Check } from 'lucide-react';
+import { Loader2, FileText, AlertCircle, Sparkles, Eye } from 'lucide-react';
 import { usePageTitle } from '@/hooks/use-page-title';
-import { cn } from '@/lib/utils';
+import { useAutoSave } from '@/hooks/use-auto-save';
 import toast from 'react-hot-toast';
-import { ModernTemplateSelector } from '@/components/modern-template-selector';
-import { ModernResumePreview } from '@/components/modern-resume-preview';
 import { ModernTemplateId } from '@/lib/modern-templates';
 import { parseResumeText } from '@/lib/resume-parser';
 import { ResumeData } from '@/lib/types';
-import { ResumeContentEditor } from '@/components/resume-content-editor';
 
-// Statistics Item Component
-interface StatItemProps {
-  label: string;
-  value: number;
-  icon: React.ElementType;
-  gradient: string;
-}
-
-function StatItem({ label, value, icon: Icon, gradient }: StatItemProps) {
-  return (
-    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-      <div className={cn('w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br', gradient)}>
-        <Icon className="w-5 h-5 text-white" />
+// Lazy load heavy components - only load when tab is active
+const ModernTemplateSelector = dynamic(
+  () => import('@/components/modern-template-selector').then(mod => mod.ModernTemplateSelector),
+  {
+    loading: () => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="h-48 bg-muted animate-pulse rounded-lg" />
+        ))}
       </div>
-      <div>
-        <div className="text-2xl font-bold">{value}</div>
-        <div className="text-xs text-muted-foreground">{label}</div>
-      </div>
-    </div>
-  );
-}
+    ),
+    ssr: false,
+  }
+);
 
-// Checklist Item Component
-interface ChecklistItemProps {
-  completed: boolean;
-  label: string;
-  icon: React.ReactNode;
-}
-
-function ChecklistItem({ completed, label, icon }: ChecklistItemProps) {
-  return (
-    <div className={cn(
-      "flex items-center gap-3 p-2 rounded-lg transition-colors",
-      completed ? "bg-green-50 dark:bg-green-950/20" : "bg-muted/30"
-    )}>
-      <div className={cn(
-        "w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0",
-        completed 
-          ? "bg-green-500 text-white" 
-          : "bg-muted-foreground/20"
-      )}>
-        {completed ? (
-          <Check className="h-4 w-4" />
-        ) : (
-          icon
-        )}
+const ModernResumePreview = dynamic(
+  () => import('@/components/modern-resume-preview').then(mod => mod.ModernResumePreview),
+  {
+    loading: () => (
+      <div className="flex flex-col items-center justify-center h-96 bg-muted/30 rounded-lg">
+        <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Loading preview...</p>
       </div>
-      <span className={cn(
-        "text-sm font-medium",
-        completed ? "text-green-700 dark:text-green-400" : "text-muted-foreground"
-      )}>
-        {label}
-      </span>
-    </div>
-  );
-}
+    ),
+    ssr: false,
+  }
+);
+
+const ResumeContentEditor = dynamic(
+  () => import('@/components/resume-content-editor').then(mod => mod.ResumeContentEditor),
+  {
+    loading: () => (
+      <div className="space-y-4">
+        <div className="h-12 bg-muted animate-pulse rounded" />
+        <div className="h-96 bg-muted animate-pulse rounded" />
+      </div>
+    ),
+    ssr: false,
+  }
+);
 
 export default function CreateResumePage() {
   const router = useRouter();
@@ -85,8 +66,45 @@ export default function CreateResumePage() {
   const [selectedTemplate, setSelectedTemplate] = useState<ModernTemplateId>('professional');
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>('select');
+  const [activeTab, setActiveTab] = useState<string>('edit');
   const [hasDataChanged, setHasDataChanged] = useState(false);
+  const [draftChecked, setDraftChecked] = useState(false);
+
+  const editSectionRef = useRef<HTMLDivElement | null>(null);
+  const selectSectionRef = useRef<HTMLDivElement | null>(null);
+  const previewSectionRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToTabSection = useCallback((tabId: string) => {
+    const target =
+      tabId === 'edit'
+        ? editSectionRef.current
+        : tabId === 'select'
+          ? selectSectionRef.current
+          : tabId === 'preview'
+            ? previewSectionRef.current
+            : null;
+
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
+
+  const setTabAndScroll = useCallback(
+    (tabId: string) => {
+      setActiveTab(tabId);
+      // TabsContent uses forceMount, but schedule after state update to keep scrolling reliable.
+      requestAnimationFrame(() => scrollToTabSection(tabId));
+    },
+    [scrollToTabSection]
+  );
+
+  const draftKey = user ? `resume_buddy_builder_draft_${user.uid}` : 'resume_buddy_builder_draft_anon';
+  const { loadFromStorage } = useAutoSave({
+    key: draftKey,
+    data: resumeData,
+    delay: 500,
+    enabled: !!resumeData,
+  });
 
   // Auth check
   useEffect(() => {
@@ -95,8 +113,24 @@ export default function CreateResumePage() {
     }
   }, [user, authLoading, router]);
 
+  // Restore any saved draft before parsing resumeText.
+  useEffect(() => {
+    if (draftChecked) return;
+    if (authLoading) return;
+
+    const saved = loadFromStorage();
+    if (saved?.data) {
+      setResumeData(saved.data);
+      setHasDataChanged(false);
+    }
+
+    setDraftChecked(true);
+  }, [authLoading, draftChecked, loadFromStorage]);
+
   // Parse resume data - Load basic data from original resume only
   useEffect(() => {
+    if (!draftChecked) return;
+
     if (!resumeData) {
       setIsLoading(true);
       // Use original resume text for initial load (not improved)
@@ -105,29 +139,37 @@ export default function CreateResumePage() {
           const parsed = parseResumeText(resumeText);
           console.log('📊 Parsed Resume Data (Original):', parsed);
           setResumeData(parsed);
-          toast.success('Resume loaded! Use "Fill from Improved Resume" for AI-enhanced data.');
         } catch (error) {
           console.error(error);
           toast.error('Failed to parse resume');
         }
       } else {
         // Create empty resume data structure if no resume text
-        setResumeData({
-          personalInfo: {
-            fullName: '',
-            email: '',
-            phone: '',
-            location: '',
-          },
-          summary: '',
-          skills: [],
-          experience: [],
-          education: [],
-        });
+        // Note: the resume builder/editor in this repo uses a legacy ResumeData shape
+        // (skills as grouped array, education as array). Keep this shape to avoid the
+        // editor clearing/crashing, and cast to the shared type for compatibility.
+        setResumeData(
+          {
+            personalInfo: {
+              fullName: '',
+              email: '',
+              phone: '',
+              location: '',
+              linkedin: '',
+              github: '',
+              portfolio: '',
+              website: '',
+            },
+            summary: '',
+            skills: [],
+            experience: [],
+            education: [],
+          } as any
+        );
       }
       setIsLoading(false);
     }
-  }, [resumeText, resumeData]);
+  }, [resumeText, resumeData, draftChecked]);
 
   // Handle resume data changes
   const handleResumeDataChange = (newData: ResumeData) => {
@@ -135,50 +177,27 @@ export default function CreateResumePage() {
     setHasDataChanged(true);
   };
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + E: Go to Edit tab
-      if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
-        e.preventDefault();
-        setActiveTab('edit');
-      }
-      // Ctrl/Cmd + P: Toggle preview
-      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
-        e.preventDefault();
-        setActiveTab('preview');
-      }
-      // Ctrl/Cmd + T: Go to Template selection
-      if ((e.ctrlKey || e.metaKey) && e.key === 't') {
-        e.preventDefault();
-        setActiveTab('select');
-      }
+  const stepMeta = (() => {
+    const steps = [
+      { id: 'edit', label: 'Edit content' },
+      { id: 'select', label: 'Choose template' },
+      { id: 'preview', label: 'Preview & export' },
+    ] as const;
+
+    const currentIndex = Math.max(
+      0,
+      steps.findIndex((s) => s.id === activeTab)
+    );
+    const current = steps[currentIndex];
+    const next = steps[currentIndex + 1];
+
+    return {
+      steps,
+      currentIndex,
+      current,
+      next,
     };
-    
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [activeTab]);
-
-  // Calculate completion metrics
-  const calculateCompletion = () => {
-    if (!resumeData) return { percentage: 0, items: [] };
-    
-    const items = [
-      { completed: !!resumeData.personalInfo.fullName, label: 'Personal Information', icon: <User className="h-4 w-4" /> },
-      { completed: !!resumeData.summary, label: 'Professional Summary', icon: <FileText className="h-4 w-4" /> },
-      { completed: resumeData.experience.length > 0, label: 'Work Experience', icon: <Briefcase className="h-4 w-4" /> },
-      { completed: resumeData.education.length > 0, label: 'Education', icon: <GraduationCap className="h-4 w-4" /> },
-      { completed: (resumeData.projects?.length || 0) > 0, label: 'Projects', icon: <Code className="h-4 w-4" /> },
-      { completed: resumeData.skills.length > 0, label: 'Skills', icon: <Award className="h-4 w-4" /> },
-    ];
-    
-    const completedCount = items.filter(item => item.completed).length;
-    const percentage = Math.round((completedCount / items.length) * 100);
-    
-    return { percentage, items };
-  };
-
-  const completion = resumeData ? calculateCompletion() : { percentage: 0, items: [] };
+  })();
 
   // Loading state
   if (authLoading || isLoading) {
@@ -233,13 +252,13 @@ export default function CreateResumePage() {
           <Card className="border-primary/10 bg-gradient-to-br from-primary/5 to-transparent">
             <CardContent className="pt-6">
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0">
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
                 <div className="space-y-2">
                   <p className="font-semibold">AI-Improved Resume Available</p>
                   <p className="text-sm text-muted-foreground">
-                    Your resume has been enhanced with AI. Use the "Fill from Improved Resume" button in the Experience tab to populate the form with optimized data.
+                    Your resume has been enhanced with AI. Use the "Fill from Improved Resume" action in the editor to populate the form with optimized data.
                   </p>
                 </div>
               </div>
@@ -247,111 +266,85 @@ export default function CreateResumePage() {
           </Card>
         )}
 
-        {/* Resume Statistics - MATCHING DASHBOARD PATTERN */}
-        <Card className="border-primary/10 bg-gradient-to-br from-primary/5 to-transparent">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-primary" />
-              Resume Overview
-            </CardTitle>
-            <CardDescription>Summary of your resume content</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatItem 
-                label="Experience" 
-                value={resumeData.experience.length} 
-                icon={Briefcase}
-                gradient="from-blue-500 to-indigo-600"
-              />
-              <StatItem 
-                label="Skills" 
-                value={resumeData.skills.reduce((acc, s) => acc + s.items.length, 0)} 
-                icon={Award}
-                gradient="from-purple-500 to-violet-600"
-              />
-              <StatItem 
-                label="Projects" 
-                value={resumeData.projects?.length || 0} 
-                icon={Code}
-                gradient="from-green-500 to-emerald-600"
-              />
-              <StatItem 
-                label="Certifications" 
-                value={resumeData.certifications?.length || 0} 
-                icon={BadgeCheck}
-                gradient="from-orange-500 to-red-600"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Resume Completeness Tracker */}
-        <Card className="border-primary/10 bg-gradient-to-br from-primary/5 to-transparent">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Check className="h-5 w-5 text-primary" />
-                  Resume Completeness
-                </CardTitle>
-                <CardDescription>
-                  {completion.percentage}% Complete
-                </CardDescription>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-primary">
-                  {completion.items.filter(i => i.completed).length}/{completion.items.length}
+        {/* Guidance / Prerequisites */}
+        {!resumeText && (
+          <Card className="border-primary/10 bg-muted/30">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <AlertCircle className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <div className="space-y-3">
+                  <div>
+                    <p className="font-semibold">No resume uploaded yet</p>
+                    <p className="text-sm text-muted-foreground">
+                      You can build from scratch here, or upload your resume first for faster editing.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => router.push('/dashboard#resume')}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Upload Resume
+                    </Button>
+                    <Button variant="outline" onClick={() => setActiveTab('edit')}>
+                      Continue Here
+                    </Button>
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground">Sections</div>
               </div>
-            </div>
-            <Progress value={completion.percentage} className="h-2 mt-4" />
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              {completion.items.map((item, index) => (
-                <ChecklistItem 
-                  key={index}
-                  completed={item.completed}
-                  label={item.label}
-                  icon={item.icon}
-                />
-              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Simple step guidance */}
+        <Card className="border-primary/10">
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  Step {stepMeta.currentIndex + 1} of {stepMeta.steps.length}
+                </p>
+                <p className="font-semibold">{stepMeta.current.label}</p>
+                <p className="text-sm text-muted-foreground">
+                  {activeTab === 'edit' && 'Review and adjust your resume details.'}
+                  {activeTab === 'select' && 'Pick a template that matches your style.'}
+                  {activeTab === 'preview' && 'Preview and export to PDF or DOCX.'}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {stepMeta.next ? (
+                  <Button onClick={() => setTabAndScroll(stepMeta.next!.id)}>
+                    Next: {stepMeta.next.label}
+                  </Button>
+                ) : (
+                  <Button onClick={() => setTabAndScroll('preview')}>
+                    <Eye className="w-4 h-4 mr-2" />
+                    Preview & Export
+                  </Button>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Main Tabs - MATCHING IMPROVEMENTS TAB PATTERN */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={setTabAndScroll} className="w-full">
           <TabsList className="grid w-full grid-cols-3 max-w-2xl mx-auto">
-            <TabsTrigger 
-              value="edit"
-              className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/25 transition-all duration-500"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
-              <FileText className="h-4 w-4 mr-2 relative z-10" />
-              <span className="relative z-10">Edit Resume</span>
+            <TabsTrigger value="edit">
+              <FileText className="h-4 w-4 mr-2" />
+              Edit
             </TabsTrigger>
-            <TabsTrigger 
-              value="select"
-              className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/25 transition-all duration-500"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
-              <FileText className="h-4 w-4 mr-2 relative z-10" />
-              <span className="relative z-10">Select Template</span>
+            <TabsTrigger value="select">
+              <FileText className="h-4 w-4 mr-2" />
+              Template
             </TabsTrigger>
-            <TabsTrigger 
-              value="preview"
-              className="relative group data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/25 transition-all duration-500"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
-              <Eye className="h-4 w-4 mr-2 relative z-10" />
-              <span className="relative z-10">Preview & Export</span>
+            <TabsTrigger value="preview">
+              <Eye className="h-4 w-4 mr-2" />
+              Preview
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="edit" className="mt-8">
+          <TabsContent value="edit" forceMount className="mt-8">
+            <div ref={editSectionRef} id="resume-builder-edit" className="scroll-mt-24">
             <Card className="border-primary/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -373,35 +366,46 @@ export default function CreateResumePage() {
                   onChange={handleResumeDataChange}
                   improvements={improvements}
                 />
+
+                <div className="flex justify-end mt-6">
+                  <Button onClick={() => setTabAndScroll('select')}>
+                    Next: Choose template
+                  </Button>
+                </div>
               </CardContent>
             </Card>
+            </div>
           </TabsContent>
 
-          <TabsContent value="select" className="mt-8">
-            <ModernTemplateSelector 
-              selectedTemplate={selectedTemplate} 
-              onSelectTemplate={(id) => { 
-                setSelectedTemplate(id); 
-                toast.success('Template selected! Preview will update automatically.'); 
-              }} 
-            />
+          <TabsContent value="select" forceMount className="mt-8">
+            <div ref={selectSectionRef} id="resume-builder-select" className="space-y-4 scroll-mt-24">
+              <ModernTemplateSelector 
+                selectedTemplate={selectedTemplate} 
+                onSelectTemplate={(id) => {
+                  setSelectedTemplate(id);
+                }} 
+              />
+              <div className="flex justify-end">
+                <Button onClick={() => setTabAndScroll('preview')}>
+                  Next: Preview & export
+                </Button>
+              </div>
+            </div>
           </TabsContent>
 
-          <TabsContent value="preview" className="mt-8 space-y-6">
+          <TabsContent value="preview" forceMount className="mt-8 space-y-6">
+            <div ref={previewSectionRef} id="resume-builder-preview" className="scroll-mt-24" />
             {/* Export Instructions */}
-            <Card className="border-blue-500/20 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
+            <Card className="border-primary/10 bg-muted/30">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
-                  <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                  <Sparkles className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                   <div className="space-y-2">
-                    <p className="font-semibold text-blue-800 dark:text-blue-300">Export Your Resume</p>
-                    <div className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
-                      <p>• <strong>Export to PDF:</strong> Download your resume as a PDF file with perfect formatting</p>
-                      <p>• <strong>Export to DOCX:</strong> Get an editable Word document version</p>
-                      <p>• <strong>Print:</strong> Open the browser print dialog to print or save as PDF</p>
-                      <p className="mt-2 text-xs italic">
-                        All exports maintain your chosen template's styling and layout.
-                      </p>
+                    <p className="font-semibold">Export Your Resume</p>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p>• <strong>PDF:</strong> Best for applying online</p>
+                      <p>• <strong>DOCX:</strong> Editable Word document</p>
+                      <p>• <strong>Print:</strong> Print or “Save as PDF”</p>
                     </div>
                   </div>
                 </div>
@@ -430,32 +434,6 @@ export default function CreateResumePage() {
             />
           </TabsContent>
         </Tabs>
-
-        {/* Keyboard Shortcuts Hint */}
-        <Card className="border-primary/10 bg-muted/30">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-center gap-6 flex-wrap text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <kbd className="px-2 py-1 bg-background rounded border text-xs">Ctrl</kbd>
-                <span>+</span>
-                <kbd className="px-2 py-1 bg-background rounded border text-xs">E</kbd>
-                <span>Edit Resume</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <kbd className="px-2 py-1 bg-background rounded border text-xs">Ctrl</kbd>
-                <span>+</span>
-                <kbd className="px-2 py-1 bg-background rounded border text-xs">T</kbd>
-                <span>Select Template</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <kbd className="px-2 py-1 bg-background rounded border text-xs">Ctrl</kbd>
-                <span>+</span>
-                <kbd className="px-2 py-1 bg-background rounded border text-xs">P</kbd>
-                <span>Preview</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
       </div>
     </div>

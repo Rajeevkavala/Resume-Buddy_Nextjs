@@ -1,18 +1,18 @@
 
 'use client';
 
-import { useState, useContext, useEffect, Suspense, startTransition } from 'react';
+import { useState, useContext, useEffect, startTransition } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { runAnalysisAction } from '@/app/actions';
 import { ResumeContext } from '@/context/resume-context';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/auth-context';
 import { saveUserData } from '@/lib/local-storage';
 import { 
-  AnalysisLoading, 
-  PageLoadingOverlay,
-  LoadingSpinner 
+  AnalysisLoading
 } from '@/components/loading-animations';
 import { AnalysisSkeleton } from '@/components/ui/page-skeletons';
 import { usePageTitle } from '@/hooks/use-page-title';
@@ -59,6 +59,10 @@ export default function AnalysisPage() {
                          !!(jobDescription && jobDescription !== storedJobDescription) ||
                          !!(jobRole && jobRole !== storedJobRole) ||
                          !!(jobUrl && jobUrl !== storedJobUrl);
+
+  const hasResume = Boolean(resumeText);
+  const hasJobContext = Boolean(jobDescription || jobRole);
+  const isReadyForAnalysis = hasResume && hasJobContext;
 
   const handleGeneration = async () => {
     if (!user) {
@@ -143,7 +147,21 @@ export default function AnalysisPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {!isReadyForAnalysis ? (
+            <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed border-primary/20 rounded-xl bg-gradient-to-br from-primary/5 to-transparent">
+              <h3 className="text-lg font-semibold mb-2">Add your inputs to start</h3>
+              <p className="text-sm text-muted-foreground max-w-md mb-6">
+                {!hasResume
+                  ? 'Upload your resume on the Dashboard so we can analyze it.'
+                  : 'Add either a job description or a target role on the Dashboard to tailor the analysis.'}
+              </p>
+              <Button asChild size="lg" className="min-w-[200px]">
+                <Link href={!hasResume ? '/dashboard#resume' : '/dashboard#job-info'}>
+                  Go to Dashboard
+                </Link>
+              </Button>
+            </div>
+          ) : isLoading ? (
             <AnalysisLoading />
           ) : (
             <AnalysisTab

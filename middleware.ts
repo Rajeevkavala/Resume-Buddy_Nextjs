@@ -64,11 +64,19 @@ export function middleware(request: NextRequest) {
   // Add performance headers
   response.headers.set('X-DNS-Prefetch-Control', 'on');
   
-  // Add cache control for static assets
+  // Add cache control for static assets (aggressive caching)
   if (pathname.includes('/static/') || pathname.includes('/_next/')) {
     response.headers.set(
       'Cache-Control',
       'public, max-age=31536000, immutable'
+    );
+  }
+  
+  // Add cache for page routes (short cache with revalidation)
+  if (!pathname.includes('/api/') && !pathname.includes('/_next/')) {
+    response.headers.set(
+      'Cache-Control',
+      'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
     );
   }
 

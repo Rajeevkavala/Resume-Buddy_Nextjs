@@ -6,12 +6,14 @@ import { ModernTemplateId } from '@/lib/modern-templates';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Download, FileText, Printer, ZoomIn, ZoomOut } from 'lucide-react';
-import { exportToPDF, exportToDOCX, printResume } from '@/lib/resume-export';
 import toast from 'react-hot-toast';
-import { jsPDF } from 'jspdf';
 
-// Direct PDF generation function
+// Lazy import heavy PDF libraries only when export is triggered
+const loadExportUtils = () => import('@/lib/resume-export');
+
+// Direct PDF generation function - lazy loaded
 const generateDirectPDF = async (resumeData: ResumeData, filename: string) => {
+  const { jsPDF } = await import('jspdf');
   console.log('📝 Generating PDF from resume data...');
   console.log('Resume data:', resumeData);
   
@@ -290,24 +292,27 @@ export function ModernResumePreview({
     setIsExporting(true);
     
     try {
-      console.log('� Starting direct PDF generation...');
-      console.log('Resume data:', { 
-        hasPersonalInfo: !!resumeData.personalInfo,
-        name: resumeData.personalInfo?.fullName,
-        hasExperience: !!resumeData.experience?.length,
-        hasEducationAndCerts: !!resumeData.educationAndCertifications,
-        hasSkills: !!(resumeData.skills?.languages?.length || resumeData.skills?.frameworks?.length || resumeData.skills?.databases?.length || resumeData.skills?.tools?.length || resumeData.skills?.cloud?.length || resumeData.skills?.other?.length)
-      });
-      
-      // NEW APPROACH: Direct PDF generation from resume data
-      await generateDirectPDF(resumeData, `${resumeData.personalInfo.fullName}-Resume.pdf`);
-      
-      console.log('✅ PDF generated successfully!');
+      const rawName = resumeData.personalInfo?.fullName || 'Resume';
+      const safeName = rawName.replace(/[\\/:*?"<>|]+/g, '-').trim() || 'Resume';
+      const filename = `${safeName}-Resume.pdf`;
+
+      // Lazy load export utilities
+      const { exportToPDF } = await loadExportUtils();
+      // Export the exact visual template (HTML/CSS) so styles match the preview.
+      await exportToPDF('resume-preview-container', filename);
       toast.success('PDF exported successfully!');
       
     } catch (error) {
-      console.error('❌ PDF export error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to export PDF. Please try again.');
+      console.error('❌ Styled PDF export failed, falling back to text-based PDF:', error);
+      try {
+        const rawName = resumeData.personalInfo?.fullName || 'Resume';
+        const safeName = rawName.replace(/[\\/:*?"<>|]+/g, '-').trim() || 'Resume';
+        await generateDirectPDF(resumeData, `${safeName}-Resume.pdf`);
+        toast.success('PDF exported (fallback)');
+      } catch (fallbackError) {
+        console.error('❌ Fallback PDF export error:', fallbackError);
+        toast.error(fallbackError instanceof Error ? fallbackError.message : 'Failed to export PDF. Please try again.');
+      }
     } finally {
       setIsExporting(false);
     }
@@ -316,6 +321,8 @@ export function ModernResumePreview({
   const handleExportDOCX = async () => {
     setIsExporting(true);
     try {
+      // Lazy load export utilities
+      const { exportToDOCX } = await loadExportUtils();
       await exportToDOCX(resumeData, `${resumeData.personalInfo.fullName}-Resume.docx`);
     } catch (error) {
       console.error('DOCX export error:', error);
@@ -325,7 +332,9 @@ export function ModernResumePreview({
     }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
+    // Lazy load export utilities
+    const { printResume } = await loadExportUtils();
     printResume('resume-preview-container');
   };
 

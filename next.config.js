@@ -1,17 +1,35 @@
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  
+  // Compress output for smaller bundles
+  compress: true,
+  
+  // Turbopack config (Next.js 16 default)
+  turbopack: {},
+  
   // Enable experimental features for better performance
   experimental: {
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    // Optimize imports for large libraries (tree shaking)
+    optimizePackageImports: [
+      'lucide-react',
+      '@radix-ui/react-accordion',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tooltip',
+      'recharts',
+      'framer-motion',
+      'date-fns',
+      'lodash',
+    ],
   },
+  
   images: {
     remotePatterns: [
       {

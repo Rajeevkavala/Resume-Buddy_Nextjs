@@ -2,585 +2,412 @@
 
 import React from 'react';
 import { ResumeData } from '@/lib/types';
-import { Mail, Phone, MapPin, Linkedin, Github, Globe } from 'lucide-react';
 
 interface ProfessionalTemplateProps {
   resumeData: ResumeData;
 }
 
 export function ProfessionalTemplate({ resumeData }: ProfessionalTemplateProps) {
-  const { personalInfo, summary, experience, education, skills, projects, certifications, awards, languages } = resumeData;
+  const personalInfo = (resumeData as any)?.personalInfo || {};
+  const summary = (resumeData as any)?.summary || '';
+
+  // Support both legacy and current shapes found in the repo.
+  const experience = Array.isArray((resumeData as any)?.experience) ? (resumeData as any).experience : [];
+  const projects = Array.isArray((resumeData as any)?.projects) ? (resumeData as any).projects : [];
+
+  const education =
+    Array.isArray((resumeData as any)?.education)
+      ? (resumeData as any).education
+      : Array.isArray((resumeData as any)?.educationAndCertifications?.education)
+        ? (resumeData as any).educationAndCertifications.education
+        : [];
+
+  const certifications =
+    Array.isArray((resumeData as any)?.certifications)
+      ? (resumeData as any).certifications
+      : Array.isArray((resumeData as any)?.educationAndCertifications?.certifications)
+        ? (resumeData as any).educationAndCertifications.certifications
+        : [];
+
+  const awards = Array.isArray((resumeData as any)?.awards) ? (resumeData as any).awards : [];
+  const languages = Array.isArray((resumeData as any)?.languages) ? (resumeData as any).languages : [];
+
+  // One-page constraints (A4): cap content + clamp long text to reduce overflow.
+  const LIMITS = {
+    summaryLines: 4,
+    experienceRoles: 3,
+    experienceBulletsPerRole: 3,
+    educationEntries: 2,
+    skillGroups: 4,
+    skillItemsPerGroup: 6,
+    projects: 2,
+    projectTech: 4,
+    certifications: 2,
+    awards: 2,
+    languages: 3,
+  };
+
+  const clampText = (text: unknown, maxChars: number) => {
+    if (typeof text !== 'string') return '';
+    const normalized = text.replace(/\s+/g, ' ').trim();
+    if (!normalized) return '';
+    if (normalized.length <= maxChars) return normalized;
+    return `${normalized.slice(0, Math.max(0, maxChars - 1)).trim()}…`;
+  };
+
+  const lineClamp = (lines: number): React.CSSProperties => ({
+    display: '-webkit-box',
+    WebkitBoxOrient: 'vertical' as any,
+    WebkitLineClamp: lines as any,
+    // Avoid PDF/html2canvas clipping where the last pixels of a line (descenders)
+    // get cut off when clamped with overflow hidden.
+    paddingBottom: '0.25em',
+    overflow: 'hidden',
+  });
+
+  const safeName = clampText(personalInfo?.fullName, 60);
+  const safeSummary = clampText(summary, 500);
+
+  // Smart summary line clamping based on content length
+  const summaryLineCount = safeSummary.length > 350 ? 5 
+    : safeSummary.length > 250 ? 4 
+    : safeSummary.length > 150 ? 3 
+    : 2;
+
+  const contactItems = [
+    personalInfo.email ? String(personalInfo.email).trim() : '',
+    personalInfo.phone ? String(personalInfo.phone).trim() : '',
+    personalInfo.location ? String(personalInfo.location).trim() : '',
+  ].filter(Boolean);
+
+  const contactLinkItems = [
+    { key: 'linkedin', label: 'LinkedIn', icon: 'in' },
+    { key: 'github', label: 'GitHub', icon: '⌂' },
+    { key: 'website', label: 'Website', icon: '🌐' },
+    { key: 'portfolio', label: 'Portfolio', icon: '🌐' },
+    { key: 'url', label: 'Website', icon: '🌐' },
+  ]
+    .map(({ key, label, icon }) => {
+      const raw = (personalInfo as any)?.[key];
+      const value = typeof raw === 'string' ? raw.trim() : '';
+      if (!value) return null;
+      return { key, label, icon, value: clampText(value, 80) || value };
+    })
+    .filter(Boolean) as Array<{ key: string; label: string; icon: string; value: string }>;
+
+  const normalizeHref = (rawUrl: string) => {
+    const url = rawUrl.trim();
+    if (!url) return '';
+    // If user stored plain domain/user handle, make it a valid clickable URL.
+    if (/^https?:\/\//i.test(url)) return url;
+    return `https://${url}`;
+  };
+
+  const contactLinks = Array.from(
+    new Map(
+      contactLinkItems
+        .map((item) => {
+          const label = item.label === 'Website' ? 'Portfolio' : item.label;
+          return {
+            label,
+            href: normalizeHref(item.value),
+          };
+        })
+        .filter((l) => l.label && l.href)
+        .map((l) => [l.label, l] as const)
+    ).values()
+  );
+
+  const getSkillGroups = (): Record<
+    'Languages & Web' | 'Frontend' | 'Backend' | 'Databases' | 'Tools & DevOps',
+    string[]
+  > => {
+    const groups = {
+      'Languages & Web': [] as string[],
+      Frontend: [] as string[],
+      Backend: [] as string[],
+      Databases: [] as string[],
+      'Tools & DevOps': [] as string[],
+    };
+
+    const rawSkills = (resumeData as any)?.skills;
+    const addTo = (group: keyof typeof groups, items: unknown[]) => {
+      items
+        .map((s) => clampText(String(s ?? ''), 60))
+        .filter(Boolean)
+        .forEach((s) => groups[group].push(s));
+    };
+
+    // Array-based grouped skills: [{ category, items: [] }]
+    if (Array.isArray(rawSkills)) {
+      rawSkills.forEach((g: any) => {
+        const category = String(g?.category ?? '').toLowerCase();
+        const items = Array.isArray(g?.items) ? g.items : [];
+
+        if (category.includes('language') || category.includes('web')) return addTo('Languages & Web', items);
+        if (category.includes('front') || category.includes('ui')) return addTo('Frontend', items);
+        if (category.includes('back') || category.includes('server')) return addTo('Backend', items);
+        if (category.includes('database') || category.includes('db')) return addTo('Databases', items);
+        if (category.includes('devops') || category.includes('tool') || category.includes('ci')) return addTo('Tools & DevOps', items);
+
+        // Fallback to tools/devops to avoid adding extra group names.
+        return addTo('Tools & DevOps', items);
+      });
+      return groups;
+    }
+
+    // Object-based grouped skills: { languages:[], frameworks:[], ... }
+    if (rawSkills && typeof rawSkills === 'object') {
+      addTo('Languages & Web', [
+        ...((rawSkills as any).languages ?? []),
+        ...((rawSkills as any).other ?? []),
+      ]);
+      addTo('Frontend', (rawSkills as any).frameworks ?? []);
+      addTo('Databases', (rawSkills as any).databases ?? []);
+      addTo('Tools & DevOps', [
+        ...((rawSkills as any).tools ?? []),
+        ...((rawSkills as any).cloud ?? []),
+      ]);
+      return groups;
+    }
+
+    return groups;
+  };
+
+  const skillGroups = getSkillGroups();
+  const hasSkills = Object.values(skillGroups).some((items) => items.length > 0);
+
+  const PT = {
+    name: '20pt',
+    section: '12pt',
+    body: '10.5pt',
+    contact: '9.5pt',
+  } as const;
+
+  const sectionTitleStyle: React.CSSProperties = {
+    fontSize: PT.section,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    lineHeight: 1.2,
+    paddingBottom: '6pt',
+    borderBottom: '0.5pt solid #222',
+    marginTop: '16pt',
+    marginBottom: '10pt',
+  };
+
+  const bodyTextStyle: React.CSSProperties = {
+    fontSize: PT.body,
+    lineHeight: 1.15,
+    margin: 0,
+  };
+
+  const rowBetween: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: '0.75rem',
+  };
 
   return (
-    <div className="resume-template template-professional resume-container" 
-         style={{ 
-           padding: '1.5rem', 
-           background: 'linear-gradient(to bottom, #ffffff 0%, #fafbfc 100%)'
-         }}>
-      {/* Enhanced Header */}
-      <header className="template-fade-in" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
-        <h1 className="template-name" style={{ 
-          color: 'var(--color-professional-primary)',
-          fontSize: '2.25rem',
-          fontWeight: '800',
-          marginBottom: '0.5rem',
-          letterSpacing: '-0.02em'
-        }}>
-          {personalInfo.fullName}
-        </h1>
-
-        <div className="template-contact" style={{ 
-          justifyContent: 'center',
-          gap: '1.5rem',
-          padding: '0.75rem 1.5rem',
-          background: 'var(--color-professional-accent)',
-          borderRadius: '0.75rem',
-          border: '1px solid rgba(59, 130, 246, 0.2)'
-        }}>
-          {[
-            personalInfo.email && (
-              <span key="email" className="template-contact-item">
-                <Mail className="template-contact-icon" style={{ color: 'var(--color-professional-primary)' }} />
-                {personalInfo.email}
-              </span>
-            ),
-            personalInfo.phone && (
-              <span key="phone" className="template-contact-item">
-                <Phone className="template-contact-icon" style={{ color: 'var(--color-professional-primary)' }} />
-                {personalInfo.phone}
-              </span>
-            ),
-            personalInfo.location && (
-              <span key="location" className="template-contact-item">
-                <MapPin className="template-contact-icon" style={{ color: 'var(--color-professional-primary)' }} />
-                {personalInfo.location}
-              </span>
-            ),
-            personalInfo.linkedin && (
-              <span key="linkedin" className="template-contact-item">
-                <Linkedin className="template-contact-icon" style={{ color: 'var(--color-professional-primary)' }} />
-                {personalInfo.linkedin}
-              </span>
-            ),
-            personalInfo.github && (
-              <span key="github" className="template-contact-item">
-                <Github className="template-contact-icon" style={{ color: 'var(--color-professional-primary)' }} />
-                {personalInfo.github}
-              </span>
-            ),
-            personalInfo.portfolio && (
-              <span key="portfolio" className="template-contact-item">
-                <Globe className="template-contact-icon" style={{ color: 'var(--color-professional-primary)' }} />
-                {personalInfo.portfolio}
-              </span>
-            )
-          ].filter(Boolean)}
+    <div
+      className="resume-template template-professional resume-container"
+      style={{
+        padding: '0.55in 0.7in',
+        backgroundColor: '#ffffff',
+        color: '#000000',
+        fontFamily: 'Inter, Calibri, Helvetica, Arial, sans-serif',
+        fontSize: PT.body,
+        lineHeight: 1.15,
+      }}
+    >
+      {/* Header (matches sample: centered name + single-line contact) */}
+      <header style={{ textAlign: 'center', marginBottom: '12pt' }}>
+        <div style={{ fontSize: PT.name, fontWeight: 600, margin: 0, marginBottom: '12pt', lineHeight: 1.1 }}>
+          {safeName || personalInfo.fullName || 'Your Name'}
         </div>
+
+        {contactItems.length ? (
+          <div
+            style={{
+              marginTop: '0',
+              fontSize: PT.contact,
+              lineHeight: 1.25,
+              wordBreak: 'break-word',
+            }}
+          >
+            {contactItems.join(' | ')}
+          </div>
+        ) : null}
+
+        {contactLinks.length ? (
+          <div
+            style={{
+              marginTop: '4pt',
+              fontSize: PT.contact,
+              lineHeight: 1.25,
+              wordBreak: 'break-word',
+            }}
+          >
+            {contactLinks.map((l, idx) => (
+              <React.Fragment key={l.label}>
+                {idx > 0 ? ' | ' : null}
+                <a
+                  href={l.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: '#333', textDecoration: 'none' }}
+                >
+                  {l.label}
+                </a>
+              </React.Fragment>
+            ))}
+          </div>
+        ) : null}
       </header>
 
-      {/* Enhanced Summary */}
-      {summary && (
-        <section className="template-section template-fade-in" style={{ marginBottom: '1.5rem' }}>
-          <h2 className="template-section-title" style={{ 
-            color: 'var(--color-professional-primary)',
-            fontSize: '1.125rem',
-            fontWeight: '600',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            marginBottom: '0.75rem',
-            paddingBottom: '0.25rem',
-            borderBottom: '2px solid var(--color-professional-primary)',
-            position: 'relative'
-          }}>
-            <span style={{ background: 'white', paddingRight: '1rem' }}>Professional Summary</span>
-          </h2>
-          <div style={{ 
-            background: 'rgba(59, 130, 246, 0.05)',
-            padding: '1rem',
-            borderRadius: '0.5rem',
-            borderLeft: '4px solid var(--color-professional-primary)'
-          }}>
-            <p className="template-description" style={{ 
-              fontSize: '0.875rem',
-              lineHeight: '1.6',
-              color: 'var(--color-minimal-text)',
-              margin: '0',
-              fontStyle: 'italic'
-            }}>
-              {summary}
-            </p>
+      {/* PROFESSIONAL SUMMARY */}
+      {safeSummary ? (
+        <section>
+          <div style={sectionTitleStyle}>Professional Summary</div>
+          <p style={{ ...bodyTextStyle, lineHeight: 1.2, marginBottom: '8pt', maxWidth: '95%', ...lineClamp(summaryLineCount) }}>
+            {safeSummary}
+          </p>
+        </section>
+      ) : null}
+
+      {/* SKILLS */}
+      {hasSkills ? (
+        <section>
+          <div style={sectionTitleStyle}>Skills</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6pt' }}>
+            {(Object.keys(skillGroups) as Array<keyof typeof skillGroups>).map((label) => {
+              const items = skillGroups[label].slice(0, 10); // Max 10 items per group
+              if (!items.length) return null;
+              return (
+                <div key={label} style={{ ...bodyTextStyle, lineHeight: 1.25, paddingLeft: '2pt' }}>
+                  <span style={{ fontWeight: 700 }}>{label}:</span> <span>{items.join(', ')}</span>
+                </div>
+              );
+            })}
           </div>
         </section>
-      )}
+      ) : null}
 
-      {/* Enhanced Experience */}
-      {experience.length > 0 && (
-        <section className="template-section template-fade-in" style={{ marginBottom: '1.5rem' }}>
-          <h2 className="template-section-title" style={{ 
-            color: 'var(--color-professional-primary)',
-            fontSize: '1.125rem',
-            fontWeight: '600',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            marginBottom: '0.75rem',
-            paddingBottom: '0.25rem',
-            borderBottom: '2px solid var(--color-professional-primary)'
-          }}>
-            <span style={{ background: 'white', paddingRight: '1rem' }}>Professional Experience</span>
-          </h2>
-          {experience.slice(0, 4).map((exp, index) => (
-            <div key={index} style={{ 
-              marginBottom: '1.25rem',
-              padding: '1rem',
-              background: 'white',
-              borderRadius: '0.5rem',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-              position: 'relative'
-            }}>
-              <div style={{ 
-                position: 'absolute',
-                top: '0',
-                left: '0',
-                width: '4px',
-                height: '100%',
-                background: 'var(--color-professional-secondary)',
-                borderRadius: '0.25rem 0 0 0.25rem'
-              }} />
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'flex-start',
-                marginBottom: '0.5rem'
-              }}>
-                <div>
-                  <h3 className="template-job-title" style={{ 
-                    fontSize: '1rem',
-                    fontWeight: '600',
-                    color: 'var(--color-professional-primary)',
-                    marginBottom: '0.25rem'
-                  }}>
-                    {exp.title}
-                  </h3>
-                  <p className="template-company" style={{ 
-                    fontSize: '0.875rem',
-                    fontWeight: '500',
-                    color: 'var(--color-professional-secondary)',
-                    marginBottom: '0.25rem'
-                  }}>
-                    {exp.company}
-                  </p>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span className="template-date" style={{ 
-                    fontSize: '0.75rem',
-                    color: 'var(--color-minimal-light)',
-                    fontWeight: '500',
-                    background: 'var(--color-professional-accent)',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '0.25rem'
-                  }}>
-                    {exp.startDate} - {exp.current ? 'Present' : exp.endDate}
-                  </span>
-                  <br />
-                  <span style={{ 
-                    fontSize: '0.75rem',
-                    color: 'var(--color-minimal-light)',
-                    marginTop: '0.25rem',
-                    display: 'block'
-                  }}>
-                    {exp.location}
-                  </span>
-                </div>
-              </div>
-              {exp.achievements && exp.achievements.length > 0 && (
-                <ul className="template-achievements" style={{ margin: '0.5rem 0 0 0' }}>
-                  {exp.achievements.slice(0, 3).map((achievement, idx) => (
-                    <li key={idx} className="template-achievement" style={{ 
-                      fontSize: '0.75rem',
-                      lineHeight: '1.4',
-                      marginBottom: '0.25rem',
-                      color: 'var(--color-minimal-text)'
-                    }}>
-                      {achievement}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
-        </section>
-      )}
+      {/* EXPERIENCE */}
+      {experience.length ? (
+        <section>
+          <div style={sectionTitleStyle}>Experience</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12pt' }}>
+            {experience.slice(0, LIMITS.experienceRoles).map((exp: any, index: number) => {
+              const start = clampText(exp.startDate, 24) || '';
+              const end = exp.current ? 'Present' : (clampText(exp.endDate, 24) || '');
+              const dateText = [start, end].filter(Boolean).join(' - ');
 
-      {/* Enhanced Education */}
-      {education.length > 0 && (
-        <section className="template-section template-fade-in" style={{ marginBottom: '1.5rem' }}>
-          <h2 className="template-section-title" style={{ 
-            color: 'var(--color-professional-primary)',
-            fontSize: '1.125rem',
-            fontWeight: '600',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            marginBottom: '0.75rem',
-            paddingBottom: '0.25rem',
-            borderBottom: '2px solid var(--color-professional-primary)'
-          }}>
-            <span style={{ background: 'white', paddingRight: '1rem' }}>Education</span>
-          </h2>
-          <div style={{ 
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '0.75rem'
-          }}>
-            {education.slice(0, 2).map((edu, index) => (
-              <div key={index} style={{ 
-                background: 'white',
-                padding: '1rem',
-                borderRadius: '0.5rem',
-                border: '1px solid rgba(0, 0, 0, 0.1)',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-                position: 'relative'
-              }}>
-                <div style={{ 
-                  position: 'absolute',
-                  top: '0',
-                  left: '0',
-                  width: '4px',
-                  height: '100%',
-                  background: 'var(--color-professional-secondary)',
-                  borderRadius: '0.25rem 0 0 0.25rem'
-                }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <h3 style={{ 
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      color: 'var(--color-professional-primary)',
-                      marginBottom: '0.25rem'
-                    }}>
-                      {edu.degree}
-                    </h3>
-                    <p style={{ 
-                      fontSize: '0.75rem',
-                      fontWeight: '500',
-                      color: 'var(--color-professional-secondary)',
-                      marginBottom: '0.25rem'
-                    }}>
-                      {edu.institution}
-                    </p>
-                    <div style={{ 
-                      fontSize: '0.75rem',
-                      color: 'var(--color-minimal-light)'
-                    }}>
-                      {edu.location}{edu.gpa && ` • GPA: ${edu.gpa}`}
+              return (
+                <div key={index}>
+                  <div style={rowBetween}>
+                    <div style={{ fontWeight: 700, fontSize: PT.body }}>
+                      {clampText(exp.title, 80) || exp.title}
                     </div>
+                    <div style={{ fontWeight: 400, fontSize: PT.body, whiteSpace: 'nowrap', color: '#444' }}>{dateText}</div>
                   </div>
-                  <span style={{ 
-                    fontSize: '0.75rem',
-                    color: 'var(--color-minimal-light)',
-                    background: 'var(--color-professional-accent)',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '0.25rem',
-                    fontWeight: '500'
-                  }}>
-                    {edu.graduationDate}
-                  </span>
+                  <div style={{ fontSize: PT.body, marginTop: '2pt' }}>
+                    {clampText(exp.company, 70) || exp.company}
+                    {exp.location ? <span> | {clampText(exp.location, 60) || exp.location}</span> : null}
+                  </div>
+
+                  {exp.achievements?.length ? (
+                    <ul style={{ margin: '6pt 0 0 16pt', padding: 0 }}>
+                      {exp.achievements
+                        .slice(0, index === 0 ? 4 : LIMITS.experienceBulletsPerRole) // Allow 4 bullets for primary role
+                        .map((a: any, i: number) => (
+                          <li key={i} style={{ ...bodyTextStyle, marginBottom: '5pt', lineHeight: 1.2 }}>
+                            {clampText(a, 180) || a}
+                          </li>
+                        ))}
+                    </ul>
+                  ) : null}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
-      )}
+      ) : null}
 
-      {/* Enhanced Skills */}
-      {skills.length > 0 && (
-        <section className="template-section template-fade-in" style={{ marginBottom: '1.5rem' }}>
-          <h2 className="template-section-title" style={{ 
-            color: 'var(--color-professional-primary)',
-            fontSize: '1.125rem',
-            fontWeight: '600',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            marginBottom: '0.75rem',
-            paddingBottom: '0.25rem',
-            borderBottom: '2px solid var(--color-professional-primary)'
-          }}>
-            <span style={{ background: 'white', paddingRight: '1rem' }}>Core Competencies</span>
-          </h2>
-          <div className="template-skills-grid" style={{ 
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: '1rem',
-            marginTop: '0.75rem'
-          }}>
-            {skills.map((skillGroup, index) => (
-              <div key={index} className="template-skill-category" style={{ 
-                background: 'white',
-                padding: '1rem',
-                borderRadius: '0.5rem',
-                border: '1px solid rgba(0, 0, 0, 0.1)',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
-              }}>
-                <h3 className="template-skill-title" style={{ 
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
-                  color: 'var(--color-professional-primary)',
-                  marginBottom: '0.5rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em'
-                }}>
-                  {skillGroup.category}
-                </h3>
-                <div className="template-skill-items" style={{ 
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '0.25rem'
-                }}>
-                  {skillGroup.items.slice(0, 8).map((skill, skillIndex) => (
-                    <span key={skillIndex} className="template-skill-item" style={{ 
-                      background: 'var(--color-professional-accent)',
-                      color: 'var(--color-professional-primary)',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.75rem',
-                      fontWeight: '500',
-                      border: '1px solid rgba(59, 130, 246, 0.2)'
-                    }}>
-                      {skill}
-                    </span>
-                  ))}
+      {/* PROJECTS */}
+      {projects.length ? (
+        <section>
+          <div style={sectionTitleStyle}>Projects</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12pt' }}>
+            {projects.slice(0, LIMITS.projects).map((p: any, index: number) => (
+              <div key={index}>
+                <div style={{ fontWeight: 700, fontSize: PT.body }}>
+                  {clampText(p.name, 70) || p.name}
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+                {p.description ? (
+                  <div style={{ fontSize: PT.body, fontStyle: 'italic', marginTop: '2pt', color: '#333' }}>
+                    {clampText(p.description, 160) || p.description}
+                  </div>
+                ) : null}
 
-      {/* Enhanced Projects */}
-      {projects && projects.length > 0 && (
-        <section className="template-section template-fade-in" style={{ marginBottom: '1.5rem' }}>
-          <h2 className="template-section-title" style={{ 
-            color: 'var(--color-professional-primary)',
-            fontSize: '1.125rem',
-            fontWeight: '600',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            marginBottom: '0.75rem',
-            paddingBottom: '0.25rem',
-            borderBottom: '2px solid var(--color-professional-primary)'
-          }}>
-            <span style={{ background: 'white', paddingRight: '1rem' }}>Key Projects</span>
-          </h2>
-          <div style={{ 
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '1rem'
-          }}>
-            {projects.slice(0, 4).map((project, index) => (
-              <div key={index} className="template-project" style={{ 
-                background: 'white',
-                padding: '1rem',
-                borderRadius: '0.5rem',
-                border: '1px solid rgba(0, 0, 0, 0.1)',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-                transition: 'all 0.2s ease',
-                position: 'relative'
-              }}>
-                <div style={{ 
-                  position: 'absolute',
-                  top: '0',
-                  left: '0',
-                  width: '4px',
-                  height: '100%',
-                  background: 'var(--color-professional-secondary)',
-                  borderRadius: '0.25rem 0 0 0.25rem'
-                }} />
-                <h3 className="template-project-title" style={{ 
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
-                  color: 'var(--color-professional-primary)',
-                  marginBottom: '0.5rem'
-                }}>
-                  {project.name}
-                </h3>
-                {project.technologies && project.technologies.length > 0 && (
-                  <div className="template-project-tech" style={{ 
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '0.25rem',
-                    marginBottom: '0.5rem'
-                  }}>
-                    {project.technologies.slice(0, 4).map((tech, techIndex) => (
-                      <span key={techIndex} className="template-project-tech-item" style={{ 
-                        background: 'var(--color-professional-accent)',
-                        color: 'var(--color-professional-primary)',
-                        padding: '0.125rem 0.375rem',
-                        borderRadius: '0.25rem',
-                        fontSize: '0.625rem',
-                        fontWeight: '500',
-                        border: '1px solid rgba(59, 130, 246, 0.2)'
-                      }}>
-                        {tech}
-                      </span>
+                {p.achievements?.length ? (
+                  <ul style={{ margin: '6pt 0 0 16pt', padding: 0 }}>
+                    {p.achievements.slice(0, 2).map((a: any, i: number) => (
+                      <li key={i} style={{ ...bodyTextStyle, marginBottom: '5pt', lineHeight: 1.2 }}>
+                        {clampText(a, 180) || a}
+                      </li>
                     ))}
-                  </div>
-                )}
-                <p style={{ 
-                  fontSize: '0.75rem',
-                  lineHeight: '1.4',
-                  color: 'var(--color-minimal-text)',
-                  margin: '0'
-                }}>
-                  {project.description}
-                </p>
+                  </ul>
+                ) : null}
               </div>
             ))}
           </div>
         </section>
-      )}
+      ) : null}
 
-      {/* Additional Qualifications Row */}
-      <div style={{ 
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: '1rem',
-        marginBottom: '1rem'
-      }}>
-        {/* Certifications */}
-        {certifications && certifications.length > 0 && certifications.length <= 4 && (
-          <section className="template-fade-in" style={{ 
-            background: 'white',
-            padding: '1rem',
-            borderRadius: '0.5rem',
-            border: '1px solid rgba(0, 0, 0, 0.1)',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
-          }}>
-            <h2 style={{ 
-              color: 'var(--color-professional-primary)',
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: '0.5rem',
-              paddingBottom: '0.25rem',
-              borderBottom: '1px solid var(--color-professional-primary)'
-            }}>
-              Certifications
-            </h2>
-            {certifications.slice(0, 4).map((cert, index) => (
-              <div key={index} style={{ 
-                marginBottom: '0.5rem',
-                paddingBottom: '0.5rem',
-                borderBottom: index < certifications.length - 1 ? '1px solid rgba(0, 0, 0, 0.1)' : 'none'
-              }}>
-                <div style={{ 
-                  fontSize: '0.75rem',
-                  fontWeight: '600',
-                  color: 'var(--color-professional-primary)',
-                  marginBottom: '0.125rem'
-                }}>
-                  {cert.name}
+      {/* ACHIEVEMENTS & CERTIFICATIONS */}
+      {(certifications.length || awards.length) ? (
+        <section>
+          <div style={sectionTitleStyle}>Achievements &amp; Certifications</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6pt' }}>
+            {awards.slice(0, LIMITS.awards).map((a: any, i: number) => (
+              <p key={`award-${i}`} style={{ ...bodyTextStyle, marginBottom: '4pt' }}>
+                {clampText(a.title || a.name || a, 120) || String(a)}
+              </p>
+            ))}
+            {certifications.slice(0, LIMITS.certifications).map((c: any, i: number) => (
+              <p key={`cert-${i}`} style={{ ...bodyTextStyle, marginBottom: '6pt' }}>
+                {clampText(c.name || c.title || c, 120) || String(c)}
+              </p>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {/* EDUCATION */}
+      {education.length ? (
+        <section>
+          <div style={sectionTitleStyle}>Education</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8pt' }}>
+            {education.slice(0, LIMITS.educationEntries).map((edu: any, index: number) => (
+              <div key={index}>
+                <div style={rowBetween}>
+                  <div style={{ fontWeight: 700, fontSize: PT.body }}>
+                    {clampText(edu.degree, 80) || edu.degree}
+                  </div>
+                  <div style={{ fontWeight: 400, fontSize: PT.body, whiteSpace: 'nowrap', color: '#444' }}>
+                    {clampText(edu.graduationDate, 24) || edu.graduationDate}
+                  </div>
                 </div>
-                <div style={{ 
-                  fontSize: '0.625rem',
-                  color: 'var(--color-minimal-light)'
-                }}>
-                  {cert.issuer} • {cert.date}
+                <div style={{ fontSize: PT.body, marginTop: '2pt' }}>
+                  {clampText(edu.institution, 90) || edu.institution}
                 </div>
               </div>
             ))}
-          </section>
-        )}
-
-        {/* Awards */}
-        {awards && awards.length > 0 && awards.length <= 3 && (
-          <section className="template-fade-in" style={{ 
-            background: 'white',
-            padding: '1rem',
-            borderRadius: '0.5rem',
-            border: '1px solid rgba(0, 0, 0, 0.1)',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
-          }}>
-            <h2 style={{ 
-              color: 'var(--color-professional-primary)',
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: '0.5rem',
-              paddingBottom: '0.25rem',
-              borderBottom: '1px solid var(--color-professional-primary)'
-            }}>
-              Awards & Recognition
-            </h2>
-            {awards.slice(0, 3).map((award, index) => (
-              <div key={index} style={{ 
-                marginBottom: '0.5rem',
-                paddingBottom: '0.5rem',
-                borderBottom: index < awards.length - 1 ? '1px solid rgba(0, 0, 0, 0.1)' : 'none'
-              }}>
-                <div style={{ 
-                  fontSize: '0.75rem',
-                  fontWeight: '600',
-                  color: 'var(--color-professional-primary)',
-                  marginBottom: '0.125rem'
-                }}>
-                  {award.title}
-                </div>
-                <div style={{ 
-                  fontSize: '0.625rem',
-                  color: 'var(--color-minimal-light)'
-                }}>
-                  {award.issuer} • {award.date}
-                </div>
-              </div>
-            ))}
-          </section>
-        )}
-
-        {/* Languages */}
-        {languages && languages.length > 0 && languages.length <= 5 && (
-          <section className="template-fade-in" style={{ 
-            background: 'white',
-            padding: '1rem',
-            borderRadius: '0.5rem',
-            border: '1px solid rgba(0, 0, 0, 0.1)',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
-          }}>
-            <h2 style={{ 
-              color: 'var(--color-professional-primary)',
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: '0.5rem',
-              paddingBottom: '0.25rem',
-              borderBottom: '1px solid var(--color-professional-primary)'
-            }}>
-              Languages
-            </h2>
-            <div style={{ 
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '0.5rem'
-            }}>
-              {languages.slice(0, 5).map((lang, index) => (
-                <span key={index} style={{ 
-                  background: 'var(--color-professional-accent)',
-                  color: 'var(--color-professional-primary)',
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: '0.25rem',
-                  fontSize: '0.75rem',
-                  fontWeight: '500',
-                  border: '1px solid rgba(59, 130, 246, 0.2)'
-                }}>
-                  <span style={{ fontWeight: '600' }}>{lang.language}</span> - {lang.proficiency}
-                </span>
-              ))}
-            </div>
-          </section>
-        )}
-      </div>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
